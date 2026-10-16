@@ -75,7 +75,7 @@
           : 'Time is in range (' + T + '). Make the step very small so you do not overshoot 30 s.');
         if (ratioStatus === 'short' && canLonger) {
           steps.push('Your ratio is also short (' + R + '). Once the time is in range, if it is still sour, let the shot run to about ' + fmt(nudgedYield(dose, ratio, 'longer')) + ' g. One change at a time.');
-        } else {
+        } else if (ratioStatus !== 'long') {
           steps.push('If it is still sour once you are in the 25 to 30 s window, extend the yield by 2 to 4 g.');
         }
       }
@@ -116,7 +116,7 @@
         }
       } else if (ratioStatus === 'short' && timeStatus !== 'fast') {
         steps.push('The ratio is already short (' + R + '), so a thin cup points to channeling (water finding a shortcut) rather than too little coffee. ' + PUCK_PREP);
-      } else if (timeStatus !== 'fast') {
+      } else if (timeStatus === 'ok') {
         doseChange = 'up';
         if (canShorter) yieldChange = 'shorter';
         steps.push('Time and ratio look normal, so try more coffee: add 0.5 to 1 g of dose (if your basket allows it) and keep the same ratio.'

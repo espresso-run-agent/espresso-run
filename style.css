@@ -267,3 +267,23 @@ ol.diary { list-style: none; padding: 0; margin: 0; }
 .entry h3 { margin: 2px 0 6px; }
 .entry p { margin-bottom: 0; }
 .entry .tag { margin-left: 6px; vertical-align: middle; text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+/* Milk drinks: cup diagrams (one scale for every cup, set by the SVG geometry) */
+.drink-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px 14px; margin: 0 0 1em; }
+.drink-fig { margin: 0; text-align: center; }
+.drink-fig svg { display: block; width: 100%; max-width: 132px; height: auto; margin: 0 auto 6px; }
+.drink-fig figcaption { font-size: 0.86rem; line-height: 1.4; color: var(--mocha); }
+.drink-fig figcaption strong { display: block; font-size: 1rem; color: var(--roast); }
+.drink-fig rect { stroke: var(--mocha); stroke-width: 0.75; }
+.drink-fig .cup-line { fill: none; stroke: var(--mocha); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.l-esp { fill: #6b3f26; }
+.l-milk { fill: #e6cfa6; }
+.l-foam { fill: #fffdf8; }
+.l-water { fill: #b98d62; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; padding: 0; margin: 0 0 16px; font-size: 0.9rem; }
+.swatches li { display: inline-flex; align-items: center; gap: 6px; }
+.swatches i { display: inline-block; width: 14px; height: 14px; border: 1px solid var(--mocha); border-radius: 3px; }
+.swatches i.l-esp { background: #6b3f26; }
+.swatches i.l-milk { background: #e6cfa6; }
+.swatches i.l-foam { background: #fffdf8; }
+.swatches i.l-water { background: #b98d62; }

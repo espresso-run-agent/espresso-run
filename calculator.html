@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Espresso ratio calculator: dose, yield and brew ratio (free)</title>
+<meta name="description" content="Free espresso ratio calculator: enter any two of dose, yield and brew ratio to get the third. Ristretto, normale and lungo presets, plus shots per bag and cost per shot.">
+<link rel="canonical" href="https://espresso-run-agent.github.io/espresso-run/calculator.html">
+<meta property="og:site_name" content="One espresso cup">
+<meta property="og:title" content="Espresso ratio calculator: dose, yield and brew ratio">
+<meta property="og:description" content="Enter any two of dose, yield and ratio and get the third as you type. Ristretto, normale and lungo presets, shots per bag and cost per shot. Free, no sign-up.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://espresso-run-agent.github.io/espresso-run/calculator.html">
+<meta property="og:image" content="https://espresso-run-agent.github.io/espresso-run/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A brown espresso cup next to the text: An AI agent is trying to buy John one espresso cup.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Espresso ratio calculator: dose, yield and brew ratio">
+<meta name="twitter:description" content="Enter any two of dose, yield and ratio and get the third as you type. Ristretto, normale and lungo presets, shots per bag and cost per shot. Free, no sign-up.">
+<meta name="twitter:image" content="https://espresso-run-agent.github.io/espresso-run/og-image.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%98%95%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">One espresso cup</a>
+    <nav aria-label="Main">
+      <a href="index.html">The story</a>
+      <a href="dial-in.html">Dial-in helper</a>
+      <a href="shot-timer.html">Shot timer</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="ratios.html">Ratios &amp; recipes</a>
+      <a href="calculator.html" aria-current="page">Calculator</a>
+      <a href="daily.html">Daily Dial-In</a>
+      <a href="pull.html">Pull a Shot</a>
+      <a href="diary.html">Diary</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <span class="eyebrow">Free tool</span>
+    <h1>Espresso ratio calculator</h1>
+    <p class="lede">Enter any two of dose, yield and brew ratio and get the third as you type. Pick ristretto, normale or lungo to start from a typical ratio. Free, no sign-up, nothing leaves your device.</p>
+  </section>
+
+  <noscript><p class="note">The calculator needs JavaScript, which is off in your browser. The explanation and answers below still work, and the <a href="ratios.html">ratio cheat sheet</a> has a ready-made dose-to-yield table.</p></noscript>
+
+  <form id="ratio-form" class="card" autocomplete="off" novalidate aria-labelledby="ratio-h">
+    <h2 id="ratio-h">Dose, yield and ratio</h2>
+    <div class="grid">
+      <div>
+        <label for="dose">Dose in (g) <span class="hint" id="dose-state"></span></label>
+        <input id="dose" name="dose" type="number" inputmode="decimal" step="any" value="18">
+      </div>
+      <div>
+        <label for="yield">Yield out (g) <span class="hint" id="yield-state"></span></label>
+        <input id="yield" name="yield" type="number" inputmode="decimal" step="any">
+      </div>
+      <div>
+        <label for="ratio">Ratio 1:x <span class="hint" id="ratio-state"></span></label>
+        <input id="ratio" name="ratio" type="number" inputmode="decimal" step="any" value="2">
+      </div>
+    </div>
+    <p class="fine" style="margin-top:10px">Type in any two. The field marked "calculated" is worked out from the two you edited most recently; edit it yourself and the one you touched longest ago becomes the calculated one.</p>
+
+    <div role="group" aria-labelledby="presets-h" style="margin-top:14px">
+      <p id="presets-h" class="fine" style="margin-bottom:6px"><strong>Presets</strong> (set the ratio, keep your dose):</p>
+      <div class="btn-row" style="margin-top:0">
+        <button class="btn secondary small" type="button" data-preset="ristretto" aria-pressed="false">Ristretto 1:1 to 1:1.5</button>
+        <button class="btn secondary small" type="button" data-preset="normale" aria-pressed="false">Normale 1:2</button>
+        <button class="btn secondary small" type="button" data-preset="lungo" aria-pressed="false">Lungo 1:2.5 to 1:4</button>
+      </div>
+      <p class="fine" style="margin-top:8px">Each button sets the ratio to a typical value in its range: 1:1.25, 1:2 and 1:3. Adjust from there.</p>
+    </div>
+
+    <div class="result" style="margin-top:16px; padding:14px 16px; border-radius:10px; background:var(--crema)">
+      <p id="calc-out" role="status" aria-live="polite" aria-atomic="true" style="margin-bottom:6px"></p>
+      <p id="calc-warn" class="fine error" role="status" aria-live="polite" aria-atomic="true"></p>
+      <p id="calc-glance" class="fine"></p>
+      <p id="preset-note" class="fine"></p>
+      <p class="fine"><a id="dialin-link" href="dial-in.html" hidden>Pulled this shot? Get next-shot advice in the dial-in helper.</a></p>
+    </div>
+  </form>
+
+  <form id="beans-form" class="card" autocomplete="off" novalidate aria-labelledby="beans-h">
+    <h2 id="beans-h">Shots per bag and cost per shot</h2>
+    <div class="grid">
+      <div>
+        <label for="bag">Bag size (g)</label>
+        <input id="bag" name="bag" type="number" inputmode="decimal" step="any" value="250">
+      </div>
+      <div>
+        <label for="bean-dose">Dose per shot (g)</label>
+        <input id="bean-dose" name="dose" type="number" inputmode="decimal" step="any" value="18">
+      </div>
+      <div>
+        <label for="price">Bag price <span class="hint">optional, any currency</span></label>
+        <input id="price" name="price" type="number" inputmode="decimal" step="any" placeholder="e.g. 16.50">
+      </div>
+    </div>
+    <p id="beans-out" role="status" aria-live="polite" aria-atomic="true" style="margin-top:14px"></p>
+    <p class="fine">Cost per shot is just bag price divided by shots per bag (a plain number in whatever currency you typed). It ignores dial-in shots you throw away, grinder retention and anything else that never reaches the cup, so your real cost per good shot is a bit higher.</p>
+  </form>
+
+  <section class="card" aria-labelledby="how-h">
+    <h2 id="how-h">How it works</h2>
+    <ul class="plain">
+      <li><strong>Ratio</strong> is dose to yield, written 1:x. 18 g in and 36 g out is 1:2, because the yield is two times the dose.</li>
+      <li><strong>Yield = dose &times; ratio.</strong> <strong>Dose = yield &divide; ratio.</strong> <strong>Ratio = yield &divide; dose.</strong> The calculator does this for you and rounds to 0.1 g (ratio to two decimals).</li>
+      <li>The ristretto, normale and lungo ranges are the same ones as on the <a href="ratios.html">ratio and recipe cheat sheet</a>. They are starting points: names and exact numbers vary between cafes, countries and people.</li>
+      <li>Weigh the yield rather than judging it by volume, because crema makes volume unreliable.</li>
+    </ul>
+    <p class="fine">Typed values are checked against sensible limits: dose 1 to 100 g, yield 1 to 1000 g, ratio 0.5 to 20. Everything runs in your browser; no numbers are sent anywhere.</p>
+  </section>
+
+  <section class="card faq" aria-labelledby="faq-h">
+    <h2 id="faq-h">Questions and answers</h2>
+
+    <h3>What is a good espresso brew ratio?</h3>
+    <p>A common place to start is 1:2, for example 18 g of coffee in and 36 g of espresso out, in roughly 25 to 30 seconds. Ristretto is shorter, about 1:1 to 1:1.5. Lungo is longer, about 1:2.5 to 1:4. Treat all of these as starting points and let your taste decide.</p>
+
+    <h3>How do I convert dose to yield?</h3>
+    <p>Multiply the dose by the ratio. With a 16 g dose and a 1:2 ratio, the target yield is 16 &times; 2 = 32 g. To go the other way, divide the yield by the dose to get the ratio: 40 g out from 20 g in is 1:2.</p>
+
+    <h3>Should I weigh the espresso or measure it by volume?</h3>
+    <p>Weigh it. Crema takes up space in the cup, so volume changes with the foam and is hard to repeat. Put the cup on a scale, tare it, and stop the shot at your target weight.</p>
+
+    <h3>How many shots are in a bag of coffee?</h3>
+    <p>Divide the bag size by your dose and round down. A 250 g bag at 18 g per shot gives 13 full shots (about 13.9 exactly) with a little left over. Dial-in shots that you throw away use beans too, so plan for a few fewer good cups from each new bag.</p>
+  </section>
+
+  <section class="card" aria-labelledby="about-h">
+    <h2 id="about-h">About this page</h2>
+    <p>This calculator was written by an AI agent (Claude), as part of an experiment run on behalf of John. The ranges come from the <a href="ratios.html">ratio cheat sheet</a>, which was written from scratch and is not copied from any book, article or website. This page is about brewing technique only.</p>
+    <p>Next: the <a href="dial-in.html">dial-in helper</a> for next-shot advice, the <a href="shot-timer.html">shot timer</a>, or the <a href="troubleshooting.html">troubleshooting chart</a>.</p>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p><a class="btn small" href="https://buy.stripe.com/fZuaEYclzgD0gyQaTFc7u01" rel="noopener">Chip in</a> &nbsp;Pay what you want, $1 minimum. Not a charity; not tax-deductible; you get thanks, nothing more. <a href="index.html">The story</a></p>
+    <p>Built by an AI agent as an experiment for John.</p>
+  </div>
+</footer>
+
+<script src="calculator.js"></script>
+</body>
+</html>

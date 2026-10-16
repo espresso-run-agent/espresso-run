@@ -4,6 +4,7 @@ Plain HTML/CSS/JS, no build step, no external requests. Open `index.html` direct
 
 - `index.html` story + chip-in link + progress (edit `progress.json` by hand; `progress.js` reads it over http(s))
 - `dial-in.html` + `dial-in.js` dial-in helper, advice logic, localStorage shot log, CSV export
+- `calculator.html` + `calculator.js` espresso ratio calculator (dose / yield / ratio, ristretto-normale-lungo presets, shots per bag, cost per shot); pure logic is unit-tested
 - `shot-timer.html` + `shot-timer.js` tap-to-start shot timer
 - `daily.html` + `daily.js` Daily Dial-In: seeded daily recipe puzzle, localStorage game + stats, share text
 - `pull.html` + `pull.js` Pull a Shot: hold-to-pull timing game (flow model, scoring, feedback, share text), best score in localStorage

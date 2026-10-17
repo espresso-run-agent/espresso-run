@@ -12,7 +12,6 @@
   const DEFAULTS = { raised: 0, supporters: 0, goal: 12 };
   const END = { label: 'Oct 29', date: '2026-10-29' };
   const HONESTY = 'Pay what you want, $1 minimum. Not a charity; not tax-deductible; you get thanks, nothing more.';
-  const CHECKOUT_NOTE = 'The checkout page is titled “JT — Supporter license”, which is just the name John’s payment link already had. There is no license.';
 
   // Cup geometry (viewBox 0 0 120 100). The coffee fills the inside, y from CUP_TOP down to CUP_BOTTOM.
   const CUP_TOP = 26;
@@ -141,7 +140,7 @@
         : '<p class="chipin-status">' + status + '</p>';
     }
     const meter = '<p class="chipin-meter"><strong>' + progressLine(progress, o.now) + '</strong></p>';
-    const fine = '<p class="fine chipin-fine">' + HONESTY + ' ' + CHECKOUT_NOTE + '</p>';
+    const fine = '<p class="fine chipin-fine">' + HONESTY + '</p>';
 
     if (variant === 'payoff') {
       return '<aside class="chipin chipin-payoff" aria-labelledby="' + prefix + '-t">' +

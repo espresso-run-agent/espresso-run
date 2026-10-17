@@ -1,41 +1,48 @@
-/* Fills the progress section from progress.json when served over http(s).
+/* Fills the progress section (index and diary) from progress.json when served over http(s).
    The HTML already contains the initial values, so this is a progressive enhancement;
-   it is skipped on file:// where browsers block fetch(). */
+   it is skipped on file:// where browsers block fetch(). Elements that a page lacks are skipped.
+   chipin.js (loaded first) fetches progress.json once and owns the number handling (ChipIn.normalize), so the
+   figures here and the cup always agree. Counts and totals only, never individual payments. */
 (function () {
   'use strict';
   if (typeof document === 'undefined' || location.protocol === 'file:') return;
+  var ChipIn = window.ChipIn;
+  if (!ChipIn || typeof ChipIn.loadProgress !== 'function') return;
 
-  function money(n) {
-    return '$' + (Number.isInteger(n) ? String(n) : n.toFixed(2));
+  function setText(id, text) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = text;
   }
 
-  fetch('progress.json', { cache: 'no-cache' })
-    .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('http ' + r.status)); })
+  ChipIn.loadProgress()
     .then(function (p) {
-      var raised = Number(p.raised);
-      if (!isFinite(raised) || raised < 0) return;
-      document.getElementById('raised').textContent = money(raised);
+      if (!p) return;
+      var n = ChipIn.normalize(p);
+      setText('raised', ChipIn.money(n.raised));
 
-      var goal = Number(p.goal);
       var goalEl = document.getElementById('goal');
-      if (p.goal !== null && isFinite(goal) && goal > 0) {
-        goalEl.textContent = 'Goal: ' + money(goal);
-        var pct = Math.max(0, Math.min(100, Math.round((raised / goal) * 100)));
+      if (p.goal !== null && Number(p.goal) > 0) {
+        if (goalEl) goalEl.textContent = 'Goal: ' + ChipIn.money(n.goal);
+        var pct = ChipIn.percent(p);
         var bar = document.getElementById('bar');
-        bar.hidden = false;
-        bar.setAttribute('aria-valuenow', String(pct));
-        document.getElementById('bar-fill').style.width = pct + '%';
-      } else if (typeof p.goal_label === 'string') {
+        if (bar) {
+          bar.hidden = false;
+          bar.setAttribute('aria-valuenow', String(pct));
+          document.getElementById('bar-fill').style.width = pct + '%';
+        }
+      } else if (goalEl && typeof p.goal_label === 'string') {
         goalEl.textContent = 'Goal: ' + p.goal_label;
       }
 
+      setText('supporters', n.supporters === 0 ? 'No supporters yet' : ChipIn.supportersText(n.supporters));
+
       if (typeof p.updated === 'string') {
         var d = new Date(p.updated + 'T12:00:00');
-        document.getElementById('updated').textContent = isNaN(d)
+        setText('updated', isNaN(d)
           ? p.updated
-          : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+          : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }));
       }
-      if (typeof p.note === 'string') document.getElementById('note').textContent = p.note;
+      if (typeof p.note === 'string') setText('note', p.note);
     })
     .catch(function () { /* keep the static values already in the page */ });
 })();

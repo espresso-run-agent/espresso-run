@@ -9,6 +9,7 @@
 
   const MAX_GUESSES = 6;
   const SHARE_URL = 'https://espresso-run-agent.github.io/espresso-run/daily.html';
+  const SHARE_TAGLINE = "An AI agent's daily espresso puzzle.";
   const EPOCH = { y: 2026, m: 10, d: 15 };           // puzzle #1 (local calendar date)
 
   const RECIPE_BOUNDS = {
@@ -173,7 +174,7 @@
     const n = opts.number;
     const rows = opts.guesses.map((g) => scoreGuess(g, opts.answer).map((c) => c.emoji).join(''));
     const score = opts.won ? opts.guesses.length : 'X';
-    return 'Daily Dial-In #' + n + ' ' + score + '/' + MAX_GUESSES + '\n' + rows.join('\n') + '\n' + SHARE_URL;
+    return 'Daily Dial-In #' + n + ' ' + score + '/' + MAX_GUESSES + '\n' + rows.join('\n') + '\n' + SHARE_TAGLINE + '\n' + SHARE_URL;
   }
 
   /* ----- stats ----- */
@@ -217,7 +218,7 @@
   }
 
   const api = {
-    MAX_GUESSES: MAX_GUESSES, SHARE_URL: SHARE_URL, RECIPE_BOUNDS: RECIPE_BOUNDS, GUESS_LIMITS: GUESS_LIMITS,
+    MAX_GUESSES: MAX_GUESSES, SHARE_URL: SHARE_URL, SHARE_TAGLINE: SHARE_TAGLINE, RECIPE_BOUNDS: RECIPE_BOUNDS, GUESS_LIMITS: GUESS_LIMITS,
     TOLERANCE: TOLERANCE, FIELDS: FIELDS, EMOJI: EMOJI,
     dateKey: dateKey, daysBetween: daysBetween, puzzleNumber: puzzleNumber,
     msUntilNextPuzzle: msUntilNextPuzzle, formatCountdown: formatCountdown,
@@ -279,6 +280,8 @@
     const errEl = document.getElementById('form-error');
     const remaining = document.getElementById('remaining');
     const endBox = document.getElementById('end');
+    // The thank-you ask appears only right after finishing in this session, never when a finished game is restored on load.
+    const ask = document.getElementById('chipin-payoff');
     const endTitle = document.getElementById('end-title');
     const endAnswer = document.getElementById('end-answer');
     const shareBtn = document.getElementById('share-btn');
@@ -368,6 +371,7 @@
       const over = status !== 'playing';
       form.hidden = over;
       endBox.hidden = !over;
+      if (ask && !over) ask.hidden = true;
       remaining.textContent = over ? '' : (MAX_GUESSES - guesses.length) + ' of ' + MAX_GUESSES + ' guesses left';
       if (over) {
         endTitle.textContent = status === 'won'
@@ -401,6 +405,7 @@
       status = gameStatus(guesses, answer);
       if (status === 'playing') persist(false); else finish();
       renderState();
+      if (ask && status !== 'playing') ask.hidden = false;
       const cells = scoreGuess(parsed.guess, answer);
       announce('Guess ' + guesses.length + ' of ' + MAX_GUESSES + '. ' +
         cells.map((c) => FIELD_LABEL[c.field] + ' ' + describe(c)).join('. ') + '. ' + hintFor(parsed.guess, answer) +

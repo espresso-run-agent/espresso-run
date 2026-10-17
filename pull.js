@@ -9,6 +9,7 @@
 
   const ROUNDS = 5;
   const SHARE_URL = 'https://espresso-run-agent.github.io/espresso-run/pull.html';
+  const SHARE_TAGLINE = "An AI agent's one-button espresso game.";
   const TIME_WINDOW = { min: 25, max: 30 };   // seconds, pump start to stop
   const YIELD_TOLERANCE = 1;                  // g either side of the target counts as on target
   const YIELD_ZERO_AT = 10;                   // g of error at which yield points reach 0
@@ -159,7 +160,7 @@
   function buildShareText(total, rounds) {
     const n = rounds || ROUNDS;
     const full = Math.min(n, Math.round((total / (n * 100)) * 5));
-    return 'Pull a Shot: ' + total + '/' + (n * 100) + ' ' + CUP_FULL.repeat(full) + CUP_EMPTY.repeat(5 - full) + '\n' + SHARE_URL;
+    return 'Pull a Shot: ' + total + '/' + (n * 100) + ' ' + CUP_FULL.repeat(full) + CUP_EMPTY.repeat(5 - full) + '\n' + SHARE_TAGLINE + '\n' + SHARE_URL;
   }
 
   function emptyStore() {
@@ -183,7 +184,7 @@
   }
 
   const api = {
-    ROUNDS: ROUNDS, SHARE_URL: SHARE_URL, TIME_WINDOW: TIME_WINDOW, YIELD_TOLERANCE: YIELD_TOLERANCE,
+    ROUNDS: ROUNDS, SHARE_URL: SHARE_URL, SHARE_TAGLINE: SHARE_TAGLINE, TIME_WINDOW: TIME_WINDOW, YIELD_TOLERANCE: YIELD_TOLERANCE,
     LAG: LAG, COAST: COAST, MAX_TIME: MAX_TIME, MIN_PULL: MIN_PULL, CUP_CAPACITY: CUP_CAPACITY,
     TARGETS: TARGETS, GRINDS: GRINDS, JITTER: JITTER, FEEDBACK: FEEDBACK,
     mulberry32: mulberry32, makeRounds: makeRounds,

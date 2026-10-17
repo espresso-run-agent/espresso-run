@@ -243,6 +243,8 @@
     const glance = el('calc-glance');
     const presetNote = el('preset-note');
     const dialLink = el('dialin-link');
+    const ask = el('chipin-payoff');   // thank-you ask, shown once the user has got a result
+    let lastOk = false;
 
     // Fields the user has typed in, most recent first. Dose and ratio start filled in.
     let order = ['ratio', 'dose'];
@@ -253,6 +255,8 @@
     function recompute() {
       const target = targetFor(order);
       const res = solve(values(), target);
+      lastOk = !!res.ok;
+      if (ask && !lastOk) ask.hidden = true;
       FIELDS.forEach((f) => {
         const calc = res.ok && f === res.target;
         inputs[f].classList.toggle('calculated', calc);
@@ -284,12 +288,18 @@
       });
     }
 
+    // Only after the user's own input produced a result, not on the first load.
+    function reveal() {
+      if (ask && lastOk) ask.hidden = false;
+    }
+
     FIELDS.forEach((f) => {
       inputs[f].addEventListener('input', function () {
         order = touch(order, f);
         presetId = null;
         recompute();
       });
+      inputs[f].addEventListener('change', reveal);   // fires when the user finishes with a field
     });
 
     document.querySelectorAll('[data-preset]').forEach((b) => {
@@ -300,6 +310,7 @@
         order = presetOrder(order);
         presetId = p.id;
         recompute();
+        reveal();
       });
     });
 

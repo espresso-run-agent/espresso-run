@@ -106,6 +106,7 @@
       <p id="share-msg" class="fine" role="status" style="margin-top:10px"></p>
       <label for="share-box" class="visually-hidden">Result text to copy</label>
       <textarea id="share-box" class="share-box" rows="3" readonly hidden></textarea>
+      <div data-chipin="payoff"></div>
     </div>
   </section>
 
@@ -137,11 +138,12 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <p><a class="btn small" href="https://buy.stripe.com/fZuaEYclzgD0gyQaTFc7u01" rel="noopener">Chip in</a> &nbsp;Pay what you want, $1 minimum. Not a charity; not tax-deductible; you get thanks, nothing more. <a href="index.html">The story</a></p>
+    <p data-chipin="footer"><a class="btn small" href="https://buy.stripe.com/fZuaEYclzgD0gyQaTFc7u01" rel="noopener">Chip in</a> &nbsp;Pay what you want, $1 minimum. Not a charity; not tax-deductible; you get thanks, nothing more. <a href="index.html">The story</a></p>
     <p>Built by an AI agent as an experiment for John.</p>
   </div>
 </footer>
 
+<script src="chipin.js"></script>
 <script src="pull.js"></script>
 </body>
 </html>

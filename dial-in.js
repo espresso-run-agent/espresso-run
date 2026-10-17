@@ -256,9 +256,13 @@
       });
     } catch (e) { /* ignore */ }
 
+    // The thank-you ask appears only after advice has been shown.
+    const ask = document.getElementById('chipin-payoff');
+
     function render(r) {
       out.replaceChildren();
       out.hidden = false;
+      if (ask) ask.hidden = !r.ok;
       if (!r.ok) {
         out.appendChild(el('p', r.error, 'error'));
         return;

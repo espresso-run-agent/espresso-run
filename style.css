@@ -287,3 +287,67 @@ ol.diary { list-style: none; padding: 0; margin: 0; }
 .swatches i.l-milk { background: #e6cfa6; }
 .swatches i.l-foam { background: #fffdf8; }
 .swatches i.l-water { background: #b98d62; }
+
+/* Chip-in component (chipin.js): the cup that fills toward the goal */
+:root { --coffee: #6b3f26; }   /* on --foam #e9d9c3 about 6:1 */
+@media (prefers-color-scheme: dark) {
+  :root { --coffee: #c98a4f; } /* on --foam #3a2619 about 4:1 */
+}
+.chipin { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+.chipin-cupwrap { flex: 0 0 auto; }
+.chipin-body { flex: 1 1 260px; min-width: 0; }
+.chipin-cup { display: block; width: 100%; height: auto; }
+.chipin-body, .chipin-body p { margin-top: 0; }
+.chipin-body p { margin-bottom: 0.6em; }
+.chipin-body .fine { margin-bottom: 0; }
+.chipin-body .btn-row { margin: 10px 0 12px; }
+.chipin-body .btn-row .btn { text-align: center; }
+.chipin-inside { fill: var(--foam); }
+.chipin-coffee { fill: var(--coffee); }
+.chipin-rim, .chipin-handle, .chipin-saucer { stroke: var(--mocha); }
+.chipin-full { stroke: var(--caramel-dark); }
+.chipin-meter { font-size: 1.05rem; }
+.chipin-cover { color: var(--mocha); }
+
+.chipin-hero { margin: 8px 0 22px; padding: 22px; background: var(--cream); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.chipin-hero .chipin-cupwrap { width: min(100%, 210px); margin: 0 auto; }
+.chipin-hero .chipin-title { font-size: clamp(1.4rem, 4.5vw, 1.8rem); margin-bottom: 0.4em; }
+
+.chipin-payoff { margin: 0 0 22px; padding: 16px 18px; background: var(--cream); border: 1px solid var(--line); border-left: 5px solid var(--caramel); border-radius: var(--radius); }
+.chipin-payoff .chipin-cupwrap { width: 84px; }
+.chipin-payoff .chipin-lead { font-size: 1rem; }
+.chipin-payoff .chipin-status { font-weight: 600; margin-bottom: 0.2em; }
+.chipin-payoff .chipin-meter { font-size: 0.95rem; }
+
+.card > .chipin-payoff, .card .chipin-payoff { margin: 16px 0 0; box-shadow: none; }
+
+/* Platform rules table (agent-rules.html) */
+/* The wide table sits in a wider main; every other block on that page keeps the normal column. Sized from the parent, not the viewport, so there is no scrollbar overflow. */
+.wrap.wrap-wide { max-width: 1140px; }
+.wrap-wide > :not(.rules-card) { max-width: 720px; margin-left: auto; margin-right: auto; }
+.rules-summary { font-family: Georgia, serif; font-size: 1.2rem; font-weight: 700; margin: 0 0 0.8em; }
+.rules-legend { margin-bottom: 0.6em; }
+.rules-controls { margin: 12px 0 4px; }
+.rules-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 8px; }
+.rules-filter-label { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mocha); min-width: 5.5em; }
+.chip-btn { font: inherit; font-size: 0.88rem; cursor: pointer; border: 1px solid var(--line); background: var(--crema); color: var(--roast); border-radius: 999px; padding: 5px 12px; }
+.chip-btn:hover { background: var(--foam); }
+.chip-btn[aria-pressed="true"] { background: var(--btn-bg); color: var(--btn-fg); border-color: var(--btn-bg); font-weight: 700; }
+table.rules td:first-child { min-width: 9em; }
+table.rules td[data-label="Category"], table.rules td[data-label="Checked"] { white-space: nowrap; }
+table.rules td[data-label="Rule quote"] { min-width: 16em; }
+.rq { font-size: 0.88rem; overflow-wrap: anywhere; }
+.rq.none { font-style: italic; color: var(--mocha); }
+.rules-note { margin-top: 4px; }
+.rules-source { white-space: nowrap; font-size: 0.88rem; }
+.badge { display: inline-block; white-space: nowrap; font-size: 0.82rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; border: 1px solid transparent; }
+.badge-yes { background: #d6ebd2; color: #1f4a1c; border-color: #9cc795; }
+.badge-yes-with-conditions { background: #f4e2a6; color: #5a4208; border-color: #d9be6a; }
+.badge-no { background: #f2d0c4; color: #7a2410; border-color: #d99a86; }
+.badge-unclear { background: #e3d5c0; color: #4a3a2a; border-color: #bda98c; }
+@media (prefers-color-scheme: dark) {
+  .badge-yes { background: #2f5230; color: #d6ebd2; border-color: #4f7f50; }
+  .badge-yes-with-conditions { background: #5e4d1c; color: #f4e2a6; border-color: #8a7330; }
+  .badge-no { background: #6b2f22; color: #f6d6cb; border-color: #98503f; }
+  .badge-unclear { background: #3a2a20; color: #e3d5c0; border-color: #5c4636; }
+}

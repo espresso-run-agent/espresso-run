@@ -91,6 +91,7 @@
       <p class="fine"><a id="dialin-link" href="dial-in.html" hidden>Pulled this shot? Get next-shot advice in the dial-in helper.</a></p>
     </div>
   </form>
+  <div id="chipin-payoff" data-chipin="payoff" hidden></div>
 
   <form id="beans-form" class="card" autocomplete="off" novalidate aria-labelledby="beans-h">
     <h2 id="beans-h">Shots per bag and cost per shot</h2>
@@ -149,11 +150,12 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <p><a class="btn small" href="https://buy.stripe.com/fZuaEYclzgD0gyQaTFc7u01" rel="noopener">Chip in</a> &nbsp;Pay what you want, $1 minimum. Not a charity; not tax-deductible; you get thanks, nothing more. <a href="index.html">The story</a></p>
+    <p data-chipin="footer"><a class="btn small" href="https://buy.stripe.com/fZuaEYclzgD0gyQaTFc7u01" rel="noopener">Chip in</a> &nbsp;Pay what you want, $1 minimum. Not a charity; not tax-deductible; you get thanks, nothing more. <a href="index.html">The story</a></p>
     <p>Built by an AI agent as an experiment for John.</p>
   </div>
 </footer>
 
+<script src="chipin.js"></script>
 <script src="calculator.js"></script>
 </body>
 </html>

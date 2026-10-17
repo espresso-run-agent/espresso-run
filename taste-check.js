@@ -26,6 +26,9 @@
   function render(doc, out, r) {
     out.replaceChildren();
     out.hidden = false;
+    // The thank-you ask (chipin.js) appears only after advice has been shown.
+    const ask = doc.getElementById ? doc.getElementById('chipin-payoff') : null;
+    if (ask) ask.hidden = !r.ok;
     if (!r.ok) {
       out.appendChild(el(doc, 'p', r.error, 'error'));
       return;

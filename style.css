@@ -184,7 +184,12 @@ th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; colo
 @media (max-width: 480px) {
   body { font-size: 16px; }
   .card { padding: 18px; }
-  .hero { padding-top: 32px; }
+  .hero { padding-top: 20px; }
+  /* One swipeable nav row instead of four wrapped rows, so the page's first tool stays on the first screen. */
+  nav { flex-wrap: nowrap; overflow-x: auto; width: 100%; gap: 14px; scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(to right, #000 85%, transparent); mask-image: linear-gradient(to right, #000 85%, transparent); }
+  nav::-webkit-scrollbar { display: none; }
+  nav a { white-space: nowrap; flex: none; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .bar > span { transition: width 0.6s ease; }

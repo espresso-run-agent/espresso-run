@@ -42,22 +42,22 @@
     "question": "May an AI-operated account post its own project here?",
     "verdict": "yes-with-conditions",
     "conditions": "No spam; commercial content must be identified as such; no deceiving others about who you are",
-    "rule_quote": "Do not send spam or repeatedly post content in ways that disrupt normal conversations or service use. [...] Do not post undisclosed commercial content, sponsored material, or advertising without clearly identifying",
+    "rule_quote": "Do not send spam or repeatedly post content in ways that disrupt normal conversations or service use. [...] Do not post undisclosed commercial content, sponsored material, or advertising without clearly identifying its commercial nature to other users.",
     "source_url": "https://bsky.social/about/support/community-guidelines",
     "checked": "2026-10-17",
-    "note": "The guidelines (last updated September 19, 2025) do not mention AI or bot accounts. The second quote is cut off mid-sentence where the fetch ended it."
+    "note": "The guidelines (last updated September 19, 2025) do not mention AI or bot accounts."
   },
   {
     "platform": "Cloudflare Pages",
     "url": "https://pages.cloudflare.com/",
     "category": "hosting",
     "question": "May an AI-operated account post its own project here?",
-    "verdict": "no",
-    "conditions": "Agreement bars signing up on behalf of a third party",
-    "rule_quote": "sign up for the Services on behalf of a third party [...] software or automated agents or scripts into the Services so as to produce multiple accounts",
+    "verdict": "unclear",
+    "conditions": "No signing up on behalf of a third party; no automated agents that create multiple accounts or generate automated requests",
+    "rule_quote": "sign up for the Services on behalf of a third party [...] introduce software or automated agents or scripts into the Services so as to produce multiple accounts, generate automated searches, requests or queries",
     "source_url": "https://www.cloudflare.com/terms/",
     "checked": "2026-10-17",
-    "note": "Section 2.2.1(a) and (e) of the self-serve agreement. An agent signing up for its operator would hit the first clause."
+    "note": "Section 2.2.1(a) and (e) of the self-serve agreement. Neither clause names AI. An agent running one account its operator created is arguably not a third party, but (e) could cover an agent driving the dashboard. Re-read 2026-10-17 after a reader challenged the earlier \"no\"."
   },
   {
     "platform": "Codeberg (Pages)",
@@ -129,7 +129,7 @@
     "rule_quote": "AI-assisted and -generated articles are allowed on DEV Community, so long as they follow these guidelines: [...] Promote any business, program, or course (including your own). [...] we ask that you not use bots or AI to generate comments on posts",
     "source_url": "https://dev.to/guidelines-for-ai-assisted-articles-on-dev",
     "checked": "2026-10-17",
-    "note": "Guideline last updated by the DEV Team on April 8th 2024. The 'Promote any business...' line sits in the list of things not to do."
+    "note": "Guideline last updated by the DEV Team on April 8th 2024. The \"Promote any business...\" line sits in the list of things not to do, so an AI article whose main point is announcing your own project likely breaks it; a disclosed write-up of what you built and learned is the kind of post the guidelines welcome."
   },
   {
     "platform": "The Dles",
@@ -484,12 +484,12 @@
     "url": "https://vercel.com/",
     "category": "hosting",
     "question": "May an AI-operated account post its own project here?",
-    "verdict": "no",
-    "conditions": "Hobby plan is for personal or non-commercial use only",
+    "verdict": "yes-with-conditions",
+    "conditions": "Free Hobby plan: personal or non-commercial use only; paid plans allow commercial use",
     "rule_quote": "You shall only use the Services under a Hobby plan for your personal or non-commercial use.",
     "source_url": "https://vercel.com/legal/terms",
     "checked": "2026-10-17",
-    "note": "Section 4. The bar is commercial use, not AI. The experiment treated a site with a payment link as commercial; that is a judgement."
+    "note": "Section 4. The rule is about commercial use, not AI. This experiment skipped Vercel because its site has a tip link, which it treated as commercial on the free plan; that is a judgement. Changed from \"no\" on 2026-10-17 after a reader pointed out the verdict answered this project's case rather than the general question."
   },
   {
     "platform": "wordleweb (GitHub list)",

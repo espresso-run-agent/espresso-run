@@ -52,12 +52,23 @@
     let grind = 'keep';          // 'finer' | 'coarser' | 'keep'
     let yieldChange = 'keep';    // 'longer' | 'shorter' | 'keep'
     let doseChange = 'keep';     // 'up' | 'keep'
+    let yieldTarget = null;      // set when a step names an exact yield other than the ratio nudge
     let headline = '';
+    const choked = ratio < 1 && time > 40 && taste !== 'balanced';
+    const turbo = ratio >= 2.5 && time < 20;
+    const plus = (g) => { yieldTarget = round1(yld + g); return fmt(yieldTarget); };
+    const minus = (g) => { yieldTarget = round1(Math.max(yld - g, dose)); return fmt(yieldTarget); };
     const steps = [];
     const T = fmt(time) + ' s';
     const R = '1:' + fmt(ratio);
 
-    if (taste === 'sour') {
+    if (choked) {
+      headline = 'This looks like a choked shot.';
+      grind = 'coarser';
+      steps.push('Only ' + fmt(yld) + ' g came out in ' + T + ' (' + R + '). The grind is too fine for this dose, so the taste is not telling you much yet.');
+      steps.push('Grind a few steps coarser (or take 1 g off the dose) and get a normal amount out first, about ' + fmt(dose * 2) + ' g, then judge the taste.');
+      steps.push(PUCK_PREP);
+    } else if (taste === 'sour') {
       headline = 'Sour usually means under-extracted.';
       if (timeStatus === 'slow') {
         steps.push('The shot is already slow (' + T + '). Some coffees, especially light roasts, run like this, so going finer is unlikely to help and risks choking the machine.');
@@ -69,13 +80,13 @@
         steps.push('If your machine lets you, raise the brew temperature by 1 to 2 °C. Lighter roasts usually like it hotter.');
       } else if (timeStatus === 'ok' && canLonger) {
         yieldChange = 'longer';
-        steps.push('Time is in a normal range (' + T + '), so change the yield first: let the shot run to about ' + fmt(nudgedYield(dose, ratio, 'longer')) + ' g.');
+        steps.push('Time is in a normal range (' + T + '), so change the yield first: let the shot run 2 to 4 g longer, to about ' + plus(3) + ' g.');
         steps.push('If it is still sour after that, grind one small step finer and accept a slightly slower shot.');
       } else {
         grind = 'finer';
         steps.push('Grind one small step finer. Keep dose and yield the same.');
         steps.push(timeStatus === 'fast'
-          ? 'The shot ran fast (' + T + '). Finer will slow it down; 25 to 30 s is a common landing zone, not a target.'
+          ? (turbo ? 'Finer raises extraction; for a turbo shot the time stays short, so judge the change by taste.' : 'The shot ran fast (' + T + '). Finer will slow it down; 25 to 30 s is a common landing zone, not a target.')
           : 'Your ratio is already ' + R + ', so finer is the next lever. Light roasts often need 1:2.5 to 1:3 and a slower shot to taste sweet.');
         if (ratioStatus === 'short' && canLonger) {
           steps.push('Your ratio is also short (' + R + '). Once the time is in range, if it is still sour, let the shot run to about ' + fmt(nudgedYield(dose, ratio, 'longer')) + ' g. One change at a time.');
@@ -87,15 +98,15 @@
       headline = 'Bitter usually means over-extracted.';
       if (timeStatus === 'fast') {
         steps.push('Bitter even though the shot ran fast (' + T + ') is not a "grind too fine" problem, so leave the grind alone for now.');
-        steps.push((ratioStatus === 'long' ? 'Likely causes: channeling or a very long shot. ' : 'Likely cause: channeling. ') + PUCK_PREP);
-        if (canShorter) {
+        steps.push((ratioStatus === 'long' && !turbo ? 'Likely causes: channeling or a very long shot. ' : 'Likely cause: channeling. ') + PUCK_PREP);
+        if (canShorter && !turbo) {
           yieldChange = 'shorter';
           steps.push('Stop the shot earlier: about ' + fmt(nudgedYield(dose, ratio, 'shorter')) + ' g (currently ' + R + ').');
         }
         steps.push('If your machine lets you, lower the brew temperature by 1 to 2 °C. Darker roasts usually like it cooler.');
       } else if (timeStatus === 'ok' && ratioStatus === 'ok' && canShorter) {
         yieldChange = 'shorter';
-        steps.push('Time is in a normal range (' + T + '), so change the yield first: stop the shot at about ' + fmt(nudgedYield(dose, ratio, 'shorter')) + ' g.');
+        steps.push('Time is in a normal range (' + T + '), so change the yield first: stop the shot 2 to 4 g earlier, at about ' + minus(3) + ' g.');
         steps.push('If it is still bitter after that, grind one small step coarser, or try a slightly cooler brew temperature.');
       } else {
         grind = 'coarser';
@@ -113,11 +124,14 @@
       }
     } else if (taste === 'weak') {
       headline = 'Thin or watery: the shot needs more concentration.';
-      if (timeStatus === 'fast') {
+      if (ratio >= 2.3 && canShorter && !turbo && timeStatus === 'fast') {
+        yieldChange = 'shorter';
+        steps.push('Your ratio is long (' + R + '), the likeliest reason for a thin cup. Stop the shot at about ' + fmt(nudgedYield(dose, ratio, 'shorter')) + ' g first; if it is still thin and fast after that, grind one small step finer.');
+      } else if (timeStatus === 'fast') {
         grind = 'finer';
         steps.push('The shot ran fast (' + T + '). Grind one small step finer to bring it up toward 25 to 30 s.');
       }
-      if (ratioStatus === 'long' && canShorter) {
+      if (ratioStatus === 'long' && canShorter && yieldChange === 'keep') {
         if (grind === 'keep') {
           yieldChange = 'shorter';
           steps.push('Your ratio is long (' + R + '). Stop the shot at about ' + fmt(nudgedYield(dose, ratio, 'shorter')) + ' g for a stronger cup.');
@@ -150,7 +164,7 @@
         steps.push('Harshness in a shot with normal timing (' + T + ') usually comes from channeling. ' + PUCK_PREP + ' Wipe the basket dry before dosing.');
         if (ratioStatus !== 'long' && canShorter) {
           yieldChange = 'shorter';
-          steps.push('If it is still harsh, stop the shot a little earlier, at about ' + fmt(nudgedYield(dose, ratio, 'shorter')) + ' g. Only then try a coarser grind.');
+          steps.push('If it is still harsh, stop the shot 2 to 4 g earlier, at about ' + minus(3) + ' g. Only then try a coarser grind.');
         }
       }
       if (ratioStatus === 'long' && canShorter) {
@@ -170,8 +184,8 @@
       }
     }
 
-    if (timeStatus === 'fast' && ratio >= 2.5 && taste !== 'balanced') {
-      steps.push('If this is a deliberate fast, long-ratio recipe (a "turbo" shot), the short time is expected: judge it by taste, not the clock.');
+    if (turbo && taste !== 'balanced' && !choked) {
+      steps.unshift('If this is a deliberate fast, long-ratio recipe (a "turbo" shot), the short time is expected: judge it by taste, not the clock.');
     }
 
     const notes = [
@@ -190,7 +204,7 @@
       grind: grind,
       yieldChange: yieldChange,
       doseChange: doseChange,
-      suggestedYield: yieldChange === 'keep' ? null : nudgedYield(dose, ratio, yieldChange),
+      suggestedYield: yieldChange === 'keep' ? null : (yieldTarget !== null ? yieldTarget : nudgedYield(dose, ratio, yieldChange)),
       headline: headline,
       steps: steps,
       notes: notes

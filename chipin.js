@@ -114,8 +114,28 @@
 
   const BUYS = 'A white porcelain espresso cup from Target ($5), plus about $6 shipping and tax, shipped to John. Total about $12.';
 
-  function button(label) {
-    return '<a class="btn" href="' + STRIPE_URL + '" rel="noopener">' + label + '</a>';
+  // The payment link, optionally tagged with where the click came from (see refTag). Stripe keeps the tag on the
+  // checkout session, so a payment can be tied to an ad and a page. Nothing is stored in the visitor's browser.
+  function payUrl(ref) {
+    return ref ? STRIPE_URL + '?client_reference_id=' + ref : STRIPE_URL;
+  }
+
+  // "<source>-<ad>-<page>" from a URL's path and query, e.g. "reddit-problem-index" or "direct-agent-rules".
+  // Only letters, digits, "_" and "-" survive (Stripe's rule for client_reference_id); at most 200 characters.
+  function refTag(pathname, search) {
+    const clean = (v) => String(v || '').replace(/[^A-Za-z0-9_]/g, '').slice(0, 40);
+    const q = {};
+    String(search || '').replace(/^\?/, '').split('&').forEach(function (kv) {
+      const i = kv.indexOf('=');
+      if (i > 0) { try { q[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, ' ')); } catch (e) { /* malformed: ignore */ } }
+    });
+    const file = String(pathname || '').split('/').pop().replace(/\.html$/, '');
+    const parts = [clean(q.utm_source) || 'direct', clean(q.utm_content || q.utm_campaign), file.replace(/[^A-Za-z0-9_-]/g, '') || 'index'];
+    return parts.filter(Boolean).join('-').slice(0, 200);
+  }
+
+  function button(label, ref) {
+    return '<a class="btn" href="' + payUrl(ref) + '" rel="noopener">' + label + '</a>';
   }
 
   // variant: 'hero' (home page), 'payoff' (after a tool has just helped), 'button' (a button-sized ask inside a card),
@@ -128,15 +148,16 @@
     const st = stateOf(progress, o.now);
     const open = st === 'open';
     const status = headline(progress, o.now);
+    const ref = o.ref;
 
     if (variant === 'footer') {
       return open
-        ? '<a class="btn small" href="' + STRIPE_URL + '" rel="noopener">Chip in</a> &nbsp;' + HONESTY
+        ? '<a class="btn small" href="' + payUrl(ref) + '" rel="noopener">Chip in</a> &nbsp;' + HONESTY
         : status;
     }
     if (variant === 'button') {
       return open
-        ? '<div class="btn-row">' + button('Help finish the cup: chip in $5 (or any amount)') + '</div><p class="fine">' + HONESTY + '</p>'
+        ? '<div class="btn-row">' + button('Help finish the cup: chip in $5 (or any amount)', ref) + '</div><p class="fine">' + HONESTY + '</p>'
         : '<p class="chipin-status">' + status + '</p>';
     }
     const meter = '<p class="chipin-meter"><strong>' + progressLine(progress, o.now) + '</strong></p>';
@@ -152,7 +173,7 @@
         '<p class="chipin-status">' + status + '</p>' +
         meter +
         (open
-          ? '<div class="btn-row">' + button('Chip in $5 (or any amount)') + ' <a class="btn secondary" href="index.html">What is this?</a></div>' + fine
+          ? '<div class="btn-row">' + button('Chip in $5 (or any amount)', ref) + ' <a class="btn secondary" href="index.html">What is this?</a></div>' + fine
           : '<div class="btn-row"><a class="btn secondary" href="index.html">What is this?</a></div>') +
         '</div></aside>';
     }
@@ -165,7 +186,7 @@
       meter +
       (open
         ? '<p class="chipin-cover">' + coverLine(progress) + '</p>' +
-          '<div class="btn-row">' + button('Help finish the cup: chip in $5 (or any amount)') + '</div>' + fine
+          '<div class="btn-row">' + button('Help finish the cup: chip in $5 (or any amount)', ref) + '</div>' + fine
         : '') +
       '</div></section>';
   }
@@ -174,7 +195,7 @@
     STRIPE_URL: STRIPE_URL, SUGGESTED: SUGGESTED, DEFAULTS: DEFAULTS, END: END, HONESTY: HONESTY, BUYS: BUYS,
     normalize: normalize, money: money, percent: percent, stateOf: stateOf, supportersText: supportersText,
     headline: headline, progressLine: progressLine, coverLine: coverLine, cupLabel: cupLabel, cupSvg: cupSvg,
-    renderChipIn: renderChipIn
+    renderChipIn: renderChipIn, payUrl: payUrl, refTag: refTag
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -195,7 +216,7 @@
         const link = slot.querySelector('a:not(.btn)');
         slot.__chipinExtra = link ? ' ' + link.outerHTML : '';
       }
-      slot.innerHTML = renderChipIn(progress, { variant: variant, idPrefix: 'chipin' + i, now: new Date() }) +
+      slot.innerHTML = renderChipIn(progress, { variant: variant, idPrefix: 'chipin' + i, now: new Date(), ref: refTag(location.pathname, location.search) }) +
         (variant === 'footer' ? slot.__chipinExtra : '');
     }
   }

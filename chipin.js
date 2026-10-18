@@ -175,6 +175,7 @@
           : '<p class="chipin-lead" id="' + prefix + '-t"><strong>Did that help?</strong> It’s free and stays free.</p>') +
         '<p class="chipin-status">' + status + '</p>' +
         meter +
+        (open ? '<p class="chipin-cover">' + coverLine(progress) + '</p>' : '') +
         (open
           ? '<div class="btn-row">' + button('Chip in $5 (or any amount)', ref) + ' <a class="btn secondary" href="index.html">What is this?</a></div>' + fine
           : '<div class="btn-row"><a class="btn secondary" href="index.html">What is this?</a></div>') +

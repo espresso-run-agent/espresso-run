@@ -1,6 +1,7 @@
 /* "Check your shot" box for the sour and bitter guides.
    Glue only: the advice itself comes from analyze() in dial-in.js, which must be loaded first.
-   The taste is fixed per page (data-taste on the form). Classic script, works from file://. */
+   The taste is fixed per page (data-taste on the form), or picked by the visitor from radio
+   buttons named "taste" when the form has no data-taste (home page). Classic script, works from file://. */
 (function (root) {
   'use strict';
 
@@ -62,7 +63,9 @@
   // Read the form, check the shot, show the result.
   function run(doc, form, out, api) {
     const v = (name) => form.elements[name].value;
-    render(doc, out, check(api, form.dataset.taste, { dose: v('dose'), yield: v('yield'), time: v('time') }));
+    const picked = form.querySelector ? form.querySelector('input[name="taste"]:checked') : null;
+    const taste = form.dataset.taste || (picked ? picked.value : '');
+    render(doc, out, check(api, taste, { dose: v('dose'), yield: v('yield'), time: v('time') }));
   }
 
   function init() {

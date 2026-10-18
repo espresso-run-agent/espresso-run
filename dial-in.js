@@ -11,7 +11,7 @@
   const TARGET = {
     timeMin: 25, timeMax: 30,      // seconds, from pump start
     ratioStart: 2,                 // 1:2, e.g. 18 g in, 36 g out
-    ratioLow: 1.7, ratioHigh: 2.4  // "normal espresso" band used for flags
+    ratioLow: 1.7, ratioHigh: 2.5  // "normal espresso" band used for flags (light roasts often run to 1:3)
   };
   const TASTES = ['sour', 'balanced', 'bitter', 'weak', 'harsh'];
 
@@ -25,7 +25,7 @@
 
   // New yield for a ratio nudge of +/- 0.3, kept in a sensible band.
   function nudgedYield(dose, ratio, dir) {
-    const r = dir === 'longer' ? Math.min(ratio + 0.3, 2.6) : Math.max(ratio - 0.3, 1.5);
+    const r = dir === 'longer' ? Math.min(ratio + 0.3, 3) : Math.max(ratio - 0.3, 1.5);
     return round1(dose * r);
   }
 
@@ -60,23 +60,27 @@
     if (taste === 'sour') {
       headline = 'Sour usually means under-extracted.';
       if (timeStatus === 'slow') {
-        steps.push('The shot is already slow (' + T + '), so the grind is tight enough. Going finer is unlikely to help and risks choking the machine.');
+        steps.push('The shot is already slow (' + T + '). Some coffees, especially light roasts, run like this, so going finer is unlikely to help and risks choking the machine.');
         steps.push('Sour on a slow shot often points to uneven extraction (channeling) or water that is too cool. ' + PUCK_PREP);
         if (canLonger) {
           yieldChange = 'longer';
           steps.push('Let the shot run longer: stop at about ' + fmt(nudgedYield(dose, ratio, 'longer')) + ' g.');
         }
         steps.push('If your machine lets you, raise the brew temperature by 1 to 2 °C. Lighter roasts usually like it hotter.');
+      } else if (timeStatus === 'ok' && canLonger) {
+        yieldChange = 'longer';
+        steps.push('Time is in a normal range (' + T + '), so change the yield first: let the shot run to about ' + fmt(nudgedYield(dose, ratio, 'longer')) + ' g.');
+        steps.push('If it is still sour after that, grind one small step finer and accept a slightly slower shot.');
       } else {
         grind = 'finer';
         steps.push('Grind one small step finer. Keep dose and yield the same.');
         steps.push(timeStatus === 'fast'
-          ? 'The shot ran fast (' + T + '). You are aiming for about 25 to 30 s.'
-          : 'Time is in range (' + T + '). Make the step very small so you do not overshoot 30 s.');
+          ? 'The shot ran fast (' + T + '). Finer will slow it down; 25 to 30 s is a common landing zone, not a target.'
+          : 'Your ratio is already ' + R + ', so finer is the next lever. Light roasts often need 1:2.5 to 1:3 and a slower shot to taste sweet.');
         if (ratioStatus === 'short' && canLonger) {
           steps.push('Your ratio is also short (' + R + '). Once the time is in range, if it is still sour, let the shot run to about ' + fmt(nudgedYield(dose, ratio, 'longer')) + ' g. One change at a time.');
         } else if (ratioStatus !== 'long') {
-          steps.push('If it is still sour once you are in the 25 to 30 s window, extend the yield by 2 to 4 g.');
+          steps.push('If it is still sour after that, extend the yield by 2 to 4 g.');
         }
       }
     } else if (taste === 'bitter') {
@@ -89,14 +93,20 @@
           steps.push('Stop the shot earlier: about ' + fmt(nudgedYield(dose, ratio, 'shorter')) + ' g (currently ' + R + ').');
         }
         steps.push('If your machine lets you, lower the brew temperature by 1 to 2 °C. Darker roasts usually like it cooler.');
+      } else if (timeStatus === 'ok' && ratioStatus === 'ok' && canShorter) {
+        yieldChange = 'shorter';
+        steps.push('Time is in a normal range (' + T + '), so change the yield first: stop the shot at about ' + fmt(nudgedYield(dose, ratio, 'shorter')) + ' g.');
+        steps.push('If it is still bitter after that, grind one small step coarser, or try a slightly cooler brew temperature.');
       } else {
         grind = 'coarser';
         steps.push('Grind one small step coarser. Keep dose and yield the same.');
         steps.push(timeStatus === 'slow'
-          ? 'The shot is slow (' + T + '). Coarser should bring it back toward 25 to 30 s.'
+          ? 'The shot is slow (' + T + '). Coarser should speed it up.'
           : 'Time is in range (' + T + '). Make the step very small so the shot does not run too fast.');
         if (ratioStatus === 'long' && canShorter) {
           steps.push('Your ratio is also long (' + R + '). Once the time is in range, if it is still bitter, stop the shot at about ' + fmt(nudgedYield(dose, ratio, 'shorter')) + ' g. One change at a time.');
+        } else if (ratioStatus === 'short') {
+          steps.push('Your ratio is already short (' + R + '). Shortening it more would make a very concentrated ristretto, so if it stays bitter after the coarser grind, let the shot run a little longer instead.');
         } else {
           steps.push('If it stays bitter, try shortening the yield by 2 to 4 g, or a slightly cooler brew temperature.');
         }
@@ -117,10 +127,11 @@
       } else if (ratioStatus === 'short' && timeStatus !== 'fast') {
         steps.push('The ratio is already short (' + R + '), so a thin cup points to channeling (water finding a shortcut) rather than too little coffee. ' + PUCK_PREP);
       } else if (timeStatus === 'ok') {
-        doseChange = 'up';
-        if (canShorter) yieldChange = 'shorter';
-        steps.push('Time and ratio look normal, so try more coffee: add 0.5 to 1 g of dose (if your basket allows it) and keep the same ratio.'
-          + (canShorter ? ' Or stop earlier, at about ' + fmt(nudgedYield(dose, ratio, 'shorter')) + ' g.' : ''));
+        if (canShorter) {
+          yieldChange = 'shorter';
+          steps.push('Time and ratio look normal. For a stronger cup, stop the shot earlier, at about ' + fmt(nudgedYield(dose, ratio, 'shorter')) + ' g: a shorter ratio is what makes espresso more concentrated.');
+        }
+        steps.push('Adding dose only helps if your basket is under-filled; at the same ratio the cup comes out about as strong.');
       }
       if (timeStatus === 'slow' && ratioStatus !== 'short') {
         steps.push('Thin but slow suggests channeling (water finding a shortcut). ' + PUCK_PREP);
@@ -131,10 +142,16 @@
       if (timeStatus === 'fast') {
         steps.push('A harsh shot that ran fast (' + T + ') points to channeling more than grind size. ' + PUCK_PREP);
         steps.push('Leave the grind alone until your puck prep is consistent.');
-      } else {
+      } else if (timeStatus === 'slow') {
         grind = 'coarser';
         steps.push(PUCK_PREP);
-        steps.push('Then grind one small step coarser.');
+        steps.push('Then grind one small step coarser: the shot is slow (' + T + ').');
+      } else {
+        steps.push('Harshness in a shot with normal timing (' + T + ') usually comes from channeling. ' + PUCK_PREP + ' Wipe the basket dry before dosing.');
+        if (ratioStatus !== 'long' && canShorter) {
+          yieldChange = 'shorter';
+          steps.push('If it is still harsh, stop the shot a little earlier, at about ' + fmt(nudgedYield(dose, ratio, 'shorter')) + ' g. Only then try a coarser grind.');
+        }
       }
       if (ratioStatus === 'long' && canShorter) {
         if (grind === 'keep') {
@@ -153,8 +170,12 @@
       }
     }
 
+    if (timeStatus === 'fast' && ratio >= 2.5 && taste !== 'balanced') {
+      steps.push('If this is a deliberate fast, long-ratio recipe (a "turbo" shot), the short time is expected: judge it by taste, not the clock.');
+    }
+
     const notes = [
-      'Change one thing at a time, and only a small amount. Taste after each change.',
+      'Change one thing at a time, and only a small amount. Taste after each change. On a stepless grinder, a "step" means a small fraction of a turn.',
       'After changing the grind, run a few grams of coffee through the grinder first. Grounds from the old setting are still inside.',
       'A common starting point is a 1:2 ratio (for example 18 g in, 36 g out) in about 25 to 30 seconds. Treat it as a starting point, not a rule.'
     ];

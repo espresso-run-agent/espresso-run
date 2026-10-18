@@ -190,6 +190,9 @@ th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; colo
         -webkit-mask-image: linear-gradient(to right, #000 85%, transparent); mask-image: linear-gradient(to right, #000 85%, transparent); }
   nav::-webkit-scrollbar { display: none; }
   nav a { white-space: nowrap; flex: none; }
+  /* The three shot numbers fit on one row, keeping "Get advice" on the first screen. */
+  #check-form .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  #check-form .grid .hint { display: block; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .bar > span { transition: width 0.6s ease; }

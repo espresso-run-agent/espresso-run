@@ -83,11 +83,14 @@
     return parts.join(' · ');
   }
 
-  // "$5 covers about 40% of it." rounded to the nearest 5%.
+  // A small, true per-person framing ("3 people at $4 would ship it"), from what is still missing.
+  // Market prior: Wikipedia's "if everyone gave $3" banner (+40% donors); see notes/market-priors.md.
+  const PER_PERSON = 4;
   function coverLine(p) {
     const n = normalize(p);
-    const pct = Math.max(1, Math.round(((SUGGESTED / n.goal) * 100) / 5) * 5);
-    return money(SUGGESTED) + ' covers about ' + Math.min(100, pct) + '% of it.';
+    const left = Math.max(0, n.goal - n.raised);
+    if (left <= PER_PERSON) return 'One more person at ' + money(Math.max(1, Math.ceil(left))) + ' would ship it.';
+    return Math.ceil(left / PER_PERSON) + ' people at ' + money(PER_PERSON) + ' each would ship it.';
   }
 
   function cupLabel(p) {

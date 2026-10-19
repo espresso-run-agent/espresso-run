@@ -408,4 +408,6 @@ table.rules td[data-label="Rule quote"] { min-width: 16em; }
   .viz-tile.grind { grid-column: 1 / -1; order: 1; }
   .viz-tile.wide { order: 2; }
   .taste-grid { grid-template-columns: 1fr 1fr; }
+  #setup-form .grid { grid-template-columns: 1fr; }
 }
+.setup-src { margin: 12px 0 0; }

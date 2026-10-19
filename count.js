@@ -14,6 +14,9 @@
      sec-<id>      the section heading <h2 id> came on screen
      go-<page>     a link to another page of this site was clicked
      out-<host>    a link to another site (not Stripe) was clicked
+     recipe, fix   the setup page showed a first-shot recipe / a next-shot fix
+     pick-m-<id>, pick-g-<id>   the setup page's machine / grinder list was set to that model (a model id from
+                   setup-data.js, never anything typed)
    Each hit also carries the screen width, so GoatCounter can split any step by phone / tablet / desktop.
    Part 1 is pure and unit-tested (test/count.test.mjs); part 2 wires it to the page. Classic script. */
 (function (root) {
@@ -87,7 +90,8 @@
   const api = {
     CODE: CODE, STAGES: STAGES, TIME_MARKS: TIME_MARKS, DEPTH_MARKS: DEPTH_MARKS, IDLE_MS: IDLE_MS,
     eventName: eventName, countUrl: countUrl, shouldCount: shouldCount, depthPercent: depthPercent,
-    depthMarks: depthMarks, linkStage: linkStage, carryUtm: carryUtm
+    depthMarks: depthMarks, linkStage: linkStage, carryUtm: carryUtm,
+    send: function () {}   // replaced by the real sender below when counting is on
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Count = api;
@@ -109,6 +113,7 @@
     new Image().src = url;
   }
 
+  api.send = send;
   send('land');
 
   // Active time: a one-second tick that counts only while the tab is visible and there was input recently.

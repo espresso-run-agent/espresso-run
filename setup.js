@@ -66,7 +66,7 @@
       w.push({ level: 'note', text: 'Your grinder is better than your basket. Stock baskets on this machine are pressurised, so grind changes do little; a ' + (m.basket ? m.basket + ' mm ' : '') + 'single-wall basket is the upgrade that unlocks it.' });
     }
     if (m.builtIn && g.id !== m.builtIn && byId(D.GRINDERS, m.builtIn)) {
-      w.push({ level: 'note', text: 'Using a separate grinder instead of the built-in one: fine. Dose by weight, since the Grind Amount dial no longer applies.' });
+      w.push({ level: 'note', text: 'Using a separate grinder instead of the built-in one: fine. Dose by weight, since the machine\'s grind-amount setting no longer applies.' });
     }
     return w;
   }
@@ -74,7 +74,7 @@
   // The temperature line for this roast, in the machine's own terms.
   function tempLine(m, roast) {
     const t = m.temp || {};
-    if ((t.kind === 'pid' || t.kind === 'steps') && t.set) return 'Set ' + t.set[roast] + '. ' + t.how;
+    if ((t.kind === 'pid' || t.kind === 'steps') && t.set) return 'Temperature: ' + t.set[roast] + '. ' + t.how;
     return t.how || '';
   }
 
@@ -105,8 +105,9 @@
     if (g.kind !== 'none') {
       if (g.zero) steps.push(g.zero);
       if (start !== null && start !== undefined) {
-        steps.push('Grind at ' + g.unit + ' ' + start + (g.range ? ' (this grinder\'s espresso range is about ' + g.range[0] + ' to ' + g.range[1] + ')' : '') +
-          (roast !== 'medium' && isNum(g.start) && start !== g.start ? ', a little ' + (roast === 'light' ? 'finer' : 'coarser') + ' than the medium-roast start of ' + g.start : '') + '.');
+        steps.push('Grind at ' + (g.kind === 'clicks' ? start + ' ' + g.unit : g.unit + ' ' + start) + (g.range ? ' (this grinder\'s espresso range is about ' + g.range[0] + ' to ' + g.range[1] + ')' : '') +
+          (roast !== 'medium' && isNum(g.start) && start !== g.start ? ', a little ' + (roast === 'light' ? 'finer' : 'coarser') + ' than the suggested start of ' + g.start + ' (our adjustment for ' + roast + ' roasts)' : '') + '.');
+        if (press && g.espresso === 'yes') steps.push('That number is for a single-wall basket. In a double-wall (pressurised) basket, start a few steps coarser.');
       } else if (g.espresso === 'yes') {
         steps.push('Start a little coarser than where the burrs touch, and dial in from there.');
       }
@@ -114,19 +115,21 @@
     if (m.temp && m.temp.kind !== 'fixed') steps.push(tempLine(m, roast));
     if (m.preinfusion) steps.push(m.preinfusion);
     steps.push('Stop the shot at ' + yld + ' g in the cup (1:' + ratio + '). ' + m.stop);
-    if (m.flowStart) steps.push('Check: the first drips should appear after about ' + m.flowStart[0] + ' to ' + m.flowStart[1] + ' s. Much sooner means grind finer; much later, coarser.');
+    if (m.flowStart) steps.push('Check: the first drips should appear after about ' + m.flowStart[0] + ' to ' + m.flowStart[1] + ' s' + (m.flowNote ? ' (' + m.flowNote + ')' : '') + '. Much sooner means grind finer; much later, coarser.');
     steps.push('Taste it, then tell this page how it tasted below.');
     return {
       ok: true, auto: false, machine: m, grinder: g, roast: roast, dose: dose, yield: yld, ratio: ratio,
       ratioLabel: '1:' + ratio, pressurised: press, start: start, warnings: warnings(m, g),
-      temp: tempLine(m, roast), steps: steps, notes: [R.why].concat(m.notes || [], g.tips || []), sources: sources
+      temp: tempLine(m, roast), steps: steps, sources: sources,
+      notes: [R.why].concat(m.notes || [], (press ? m.pressNotes : m.unpressNotes) || [], g.tips || [])
     };
   }
 
   // One grind move on this grinder, from a setting, in its own words: "a lower number: from 15 to 14".
   function grindMove(g, dir, setting) {
     if (!g || g.kind === 'none') return null;
-    const n = typeof setting === 'string' ? parseFloat(setting) : setting;
+    // Arithmetic only on a plain number: settings such as the Vario's "2Q" get the wording without numbers.
+    const n = typeof setting === 'string' ? (/^\s*\d+(\.\d+)?\s*$/.test(setting) ? parseFloat(setting) : NaN) : setting;
     const word = dir === 'finer' ? g.finer : (g.finer || '').replace(/lower/g, 'higher').replace(/fewer/g, 'more').replace(/clockwise/g, 'anticlockwise').replace(/up one letter/g, 'down one letter').replace(/toward A/g, 'toward I');
     const out = { dir: dir, how: word, from: null, to: null, atLimit: false, text: '' };
     const step = g.nudge || 1;
@@ -157,7 +160,7 @@
     if (t.kind === 'fixed') return 'Temperature: this machine sets it for you, so the ratio and grind are your levers.';
     if (t.kind === 'pid') return 'Only if the grind and yield changes don\'t fix it, go 1 to 2 °C ' + dir + '. ' + t.how;
     if (t.kind === 'steps') return 'Only if the grind and yield changes don\'t fix it, one setting ' + dir + '. ' + t.how;
-    if (t.kind === 'surf') return 'Only after the grind and yield: ' + (up ? 'brew sooner after the ready light, with a shorter flush' : 'flush a little longer before the shot') + '. ' + t.how;
+    if (t.kind === 'surf') return 'Only after the grind and yield: ' + (up ? 'brew closer to when the heating or ready light goes off, with a shorter flush' : 'flush a little longer before the shot') + '. ' + t.how;
     if (t.kind === 'kettle') return up ? 'Only after the grind and yield: preheat longer and use water straight off the boil.' : 'Only after the grind and yield: let the water sit 30 s off the boil.';
     return null;
   }
@@ -298,11 +301,14 @@
     const out = $('recipe');
     if (s.m && !s.g) {
       const m = machine(s.m);
-      if (m && m.builtIn && !$('grinder').dataset.touched) { $('grinder').value = m.builtIn; s.g = m.builtIn; }
+      if (m && m.builtIn && !$('grinder').dataset.touched) { $('grinder').value = m.builtIn; s.g = m.builtIn; $('grinder').dataset.auto = '1'; }
     }
     if (!s.m || !s.g) { out.hidden = true; $('shot-form').hidden = true; return; }
     const r = recipe(s.m, s.g, s.r);
     current = r;
+    $('fix').hidden = true;
+    const ask = $('chipin-payoff');
+    if (ask) ask.hidden = true;
     out.replaceChildren();
     out.hidden = false;
     if (history.replaceState) history.replaceState(null, '', location.pathname + location.search + toHash(s));
@@ -329,8 +335,8 @@
     }
     const det = el('details');
     det.appendChild(el('summary', 'Where these numbers come from'));
-    det.appendChild(el('p', 'The dose, controls and settings come from the makers\' manuals where they publish them; "secondary" marks a retailer or review used where they don\'t. Grinders vary from unit to unit, so treat the grind number as a starting point.', 'fine'));
-    det.appendChild(sourcesList(r.sources));
+    det.appendChild(el('p', 'The dose, controls and settings come from the makers\' manuals where they publish them; "secondary" marks a retailer or review used where they don\'t. The roast changes to ratio, temperature and grind are our own estimate. Grinders vary from unit to unit, so treat the grind number as a starting point.', 'fine'));
+    det.appendChild(r.sources.length ? sourcesList(r.sources) : el('p', 'No published source for this generic entry: general guidance only.', 'fine'));
     out.appendChild(det);
     const link = el('p', undefined, 'fine');
     link.appendChild(document.createTextNode('Bookmark this page to keep your setup: it is saved in the link, not in your browser.'));
@@ -342,7 +348,7 @@
       $('s-dose').value = r.dose; $('s-yield').value = r.yield;
       const sg = $('s-setting');
       sg.closest('div').hidden = r.grinder.kind === 'none';
-      if (r.start !== null && r.start !== undefined && !sg.dataset.touched) sg.value = r.start;
+      if (!sg.dataset.touched) sg.value = r.start === null || r.start === undefined ? '' : r.start;
       $('s-setting-label').textContent = 'Grinder ' + (r.grinder.unit || 'setting');
     }
   }
@@ -366,16 +372,21 @@
     if (f.nextSetting !== null) {
       const b = el('button', 'Pulled it? Set ' + current.grinder.unit + ' to ' + f.nextSetting + ' and check the next shot', 'btn secondary');
       b.type = 'button';
-      b.addEventListener('click', () => { $('s-setting').value = f.nextSetting; $('s-time').value = ''; out.hidden = true; $('s-time').focus(); });
+      b.addEventListener('click', () => { $('s-setting').value = f.nextSetting; $('s-setting').dataset.touched = '1'; $('s-time').value = ''; out.hidden = true; $('s-time').focus(); });
       out.appendChild(b);
     }
   }
 
   ['machine', 'grinder'].forEach((id) => $(id).addEventListener('change', () => {
-    $(id).dataset.touched = '1';
+    if (id === 'machine' && $('grinder').dataset.auto) { $('grinder').value = ''; delete $('grinder').dataset.auto; }
+    else if (id === 'grinder') { $(id).dataset.touched = '1'; delete $(id).dataset.auto; }
+    if (id === 'grinder') delete $('s-setting').dataset.touched;
     const v = $(id).value;
     if (v) count('pick-' + id[0] + '-' + v);
     render();
+    // Bring the recipe into view the moment it exists (the first screen is mostly the pickers on a phone).
+    const out = $('recipe');
+    if (!out.hidden && out.getBoundingClientRect().top > root.innerHeight * 0.6 && out.scrollIntoView) out.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
   form.querySelectorAll('input[name="roast"]').forEach((r) => r.addEventListener('change', render));
   $('s-setting').addEventListener('input', () => { $('s-setting').dataset.touched = '1'; });

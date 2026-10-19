@@ -50,7 +50,7 @@
   <section class="hero">
     <span class="eyebrow">Free tool</span>
     <h1>Your machine, your grinder: your first shot</h1>
-    <p class="lede">Pick the two. You get a starting recipe in your own settings: the dose for your basket, the number on your grinder, the temperature control on your machine and when to stop. After you taste it, you get the next change on your own dial. Equipment facts come from the makers' manuals where they publish them, otherwise from retailers or reviews (marked), each linked. The adjustments for light and dark roasts are our own rule of thumb.</p>
+    <p class="lede">Pick your machine and grinder, and your coffee if it's listed. You get a starting recipe in your own settings: the dose for your basket, the number on your grinder, the temperature control on your machine and when to stop. After you taste it, you get the next change on your own dial. Equipment facts come from the makers' manuals where they publish them, otherwise from retailers or reviews (marked), each linked. The adjustments for light and dark roasts are our own rule of thumb.</p>
   </section>
 
   <form id="setup-form" class="card" autocomplete="off" novalidate>
@@ -64,8 +64,12 @@
         <select id="grinder" name="grinder"></select>
       </div>
     </div>
+    <div style="margin-top:14px">
+      <label for="coffee">Your coffee <span class="hint">optional: the roaster's own recipe, if they publish one</span></label>
+      <select id="coffee" name="coffee"></select>
+    </div>
     <fieldset>
-      <legend>Beans</legend>
+      <legend>Roast</legend>
       <div class="choices">
         <label><input type="radio" name="roast" value="light"> Light roast</label>
         <label><input type="radio" name="roast" value="medium" checked> Medium</label>
@@ -123,10 +127,11 @@
       <li><strong>The basket sets the dose.</strong> Stay within a gram or two of what your basket is made for.</li>
       <li><strong>The roast sets the ratio and temperature.</strong> About 1:2.5 and hot for light roasts, 1:2 for medium, shorter and cooler for dark.</li>
       <li><strong>Then the grind gets the shot into range, and the yield fine-tunes it.</strong> Temperature comes last. Change one thing at a time, and stop the shot by weight, not by time.</li>
+      <li><strong>If your roaster publishes a recipe, it wins.</strong> Pick the coffee and you get the roaster's own ratio, time and temperature, scaled to your basket, with a link to their page (checked 19 Oct 2026; roasters change recipes, so check the bag too).</li>
       <li><strong>Sour and bitter at once</strong> usually means uneven extraction, so the fix is puck prep and a slightly coarser grind, not a finer one.</li>
       <li>This follows widely shared advice from barista educators such as James Hoffmann, Lance Hedrick, Matt Perger and Scott Rao, applied to the settings your machine and grinder have. It is a starting point: grinders differ from unit to unit, and your taste is the judge.</li>
     </ul>
-    <p class="fine">Missing your machine or grinder? The "Other" entries cover each type. This page was built by an AI agent (Claude) as part of an experiment for John; it is about brewing technique only. On this page the anonymous counter also records which machine and grinder model you pick from the lists, so the next version covers the setups people actually have; see <a href="index.html#rules-h">what is counted</a>.</p>
+    <p class="fine">Missing your machine or grinder? The "Other" entries cover each type. This page was built by an AI agent (Claude) as part of an experiment for John; it is about brewing technique only. On this page the anonymous counter also records which machine, grinder and coffee you pick from the lists and, when you mark a shot "Good", your grinder model, roast and grinder setting (a number only, nothing else you type), so the advice can learn which settings work on which grinders; see <a href="index.html#rules-h">what is counted</a>.</p>
   </section>
 </main>
 
@@ -141,6 +146,7 @@
 <script src="count.js"></script>
 <script src="dial-in.js"></script>
 <script src="setup-data.js"></script>
+<script src="setup-coffees.js"></script>
 <script src="setup.js"></script>
 </body>
 </html>

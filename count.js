@@ -15,8 +15,10 @@
      go-<page>     a link to another page of this site was clicked
      out-<host>    a link to another site (not Stripe) was clicked
      recipe, fix   the setup page showed a first-shot recipe / a next-shot fix
-     pick-m-<id>, pick-g-<id>   the setup page's machine / grinder list was set to that model (a model id from
+     pick-m-<id>, pick-g-<id>, pick-c-<id>   the setup page's machine / grinder / coffee list was set to that model (a model id from
                    setup-data.js, never anything typed)
+     good-<grinder>-<roast>-<setting>   on the setup page, a shot marked "Good": the grinder model id, the roast
+                   and the grinder setting, only when the setting is a plain number (Setup.goodEvent)
    Each hit also carries the screen width, so GoatCounter can split any step by phone / tablet / desktop.
    Part 1 is pure and unit-tested (test/count.test.mjs); part 2 wires it to the page. Classic script. */
 (function (root) {

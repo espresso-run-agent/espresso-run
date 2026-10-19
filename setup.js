@@ -10,6 +10,7 @@
 
   const D = root.SetupData || (typeof require === 'function' ? require('./setup-data.js') : null);
   const DI = root.DialIn || (typeof require === 'function' ? require('./dial-in.js') : null);
+  const CO = root.SetupCoffees || (typeof require === 'function' ? require('./setup-coffees.js') : []);
 
   /* Starting ratio by roast (Hoffmann, Hedrick, Perger: light runs longer, dark shorter; see notes/setup-research.md). */
   const ROASTS = {
@@ -22,6 +23,7 @@
   const byId = (list, id) => (list || []).find((x) => x.id === id) || null;
   const machine = (id) => byId(D.MACHINES, id);
   const grinder = (id) => byId(D.GRINDERS, id);
+  const coffee = (id) => byId(CO, id);
   const r2 = (n) => Math.round(n * 100) / 100;
   const isNum = (v) => typeof v === 'number' && isFinite(v);
 
@@ -78,16 +80,19 @@
     return t.how || '';
   }
 
-  /* The first-shot recipe. Returns {ok, machine, grinder, roast, dose, yield, ratio, ratioLabel, pressurised,
-     start, steps[], warnings[], temp, sources[]} or {ok:false, error}. */
-  function recipe(mid, gid, roast) {
+  /* The first-shot recipe. Returns {ok, machine, grinder, coffee, roast, dose, yield, ratio, ratioLabel, pressurised,
+     start, steps[], warnings[], temp, sources[]} or {ok:false, error}. With a coffee (cid), the roaster's own
+     published ratio, time and temperature replace the roast defaults, scaled to the visitor's basket dose. */
+  function recipe(mid, gid, roast, cid) {
     const m = machine(mid);
     const g = grinder(gid);
+    const c = coffee(cid);
     if (!m) return { ok: false, error: 'Pick your machine.' };
     if (!g) return { ok: false, error: 'Pick your grinder.' };
+    if (c && ROASTS[c.roast]) roast = c.roast;
     roast = ROASTS[roast] ? roast : 'medium';
     const R = ROASTS[roast];
-    const sources = [].concat(m.src || [], g.src || []);
+    const sources = [].concat(m.src || [], g.src || [], c ? [c.url] : []);
     if (m.auto) {
       return {
         ok: true, auto: true, machine: m, grinder: g, roast: roast, dose: null, yield: null, ratio: null,
@@ -96,11 +101,20 @@
       };
     }
     const press = pressurised(m, g);
-    const ratio = press ? 2 : R.ratio;
+    const steps = [];
+    const ratio = c ? c.ratio : press ? 2 : R.ratio;
     const dose = m.dose;
     const yld = Math.round(dose * ratio);
+    if (c) {
+      const parts = [];
+      if (c.dose) parts.push(c.dose + ' g in');
+      parts.push(c.yield ? c.yield + ' g out' : '1:' + c.ratio);
+      if (c.time) parts.push(c.time[0] === c.time[1] ? c.time[0] + ' s' : c.time[0] + ' to ' + c.time[1] + ' s');
+      if (c.temp) parts.push(c.temp + ' °C');
+      steps.push('The roaster\'s own recipe (' + c.roaster + ', ' + c.coffee + '): ' + parts.join(', ') + '. ' +
+        (c.dose && Math.abs(c.dose - dose) >= 0.5 ? 'Scaled to your basket at the same ratio: ' + dose + ' g in, ' + yld + ' g out.' : 'That fits your basket as it is.'));
+    }
     const start = g.kind === 'none' ? null : startSetting(g, roast);
-    const steps = [];
     steps.push('Weigh ' + dose + ' g of coffee (' + m.doseNote + ').');
     if (g.kind !== 'none') {
       if (g.zero) steps.push(g.zero);
@@ -112,13 +126,15 @@
         steps.push('Start a little coarser than where the burrs touch, and dial in from there.');
       }
     }
-    if (m.temp && m.temp.kind !== 'fixed') steps.push(tempLine(m, roast));
+    if (c && c.temp && m.temp && m.temp.kind === 'pid') steps.push('Temperature: ' + c.temp + ' °C, as ' + c.roaster + ' brews it. ' + m.temp.how);
+    else if (m.temp && m.temp.kind !== 'fixed') steps.push(tempLine(m, roast) + (c && c.temp ? ' (' + c.roaster + ' brews at ' + c.temp + ' °C.)' : ''));
     if (m.preinfusion) steps.push(m.preinfusion);
     steps.push('Stop the shot at ' + yld + ' g in the cup (1:' + ratio + '). ' + m.stop);
+    if (c && c.time) steps.push(c.roaster + ' aims for about ' + (c.time[0] === c.time[1] ? c.time[0] : c.time[0] + ' to ' + c.time[1]) + ' s. Treat that as a check, not a target: taste decides.');
     if (m.flowStart) steps.push('Check: the first drips should appear after about ' + m.flowStart[0] + ' to ' + m.flowStart[1] + ' s' + (m.flowNote ? ' (' + m.flowNote + ')' : '') + '. Much sooner means grind finer; much later, coarser.');
     steps.push('Taste it, then tell this page how it tasted below.');
     return {
-      ok: true, auto: false, machine: m, grinder: g, roast: roast, dose: dose, yield: yld, ratio: ratio,
+      ok: true, auto: false, machine: m, grinder: g, coffee: c, roast: roast, dose: dose, yield: yld, ratio: ratio,
       ratioLabel: '1:' + ratio, pressurised: press, start: start, warnings: warnings(m, g),
       temp: tempLine(m, roast), steps: steps, sources: sources,
       notes: [R.why].concat(m.notes || [], (press ? m.pressNotes : m.unpressNotes) || [], g.tips || [])
@@ -225,16 +241,32 @@
     const p = new URLSearchParams(String(hash || '').replace(/^#/, ''));
     const m = machine(p.get('m'));
     const g = grinder(p.get('g'));
+    const c = coffee(p.get('c'));
     const r = ROASTS[p.get('r')] ? p.get('r') : 'medium';
-    return { m: m ? m.id : '', g: g ? g.id : '', r: r };
+    return { m: m ? m.id : '', g: g ? g.id : '', r: r, c: c ? c.id : '' };
   }
   function toHash(s) {
     const p = new URLSearchParams();
     if (s.m) p.set('m', s.m);
     if (s.g) p.set('g', s.g);
     if (s.r && s.r !== 'medium') p.set('r', s.r);
+    if (s.c) p.set('c', s.c);
     const q = p.toString();
     return q ? '#' + q : '';
+  }
+
+  // The anonymous "this worked" count for a good shot: grinder model, roast and the setting, e.g.
+  // "good-jmax-light-96" or "good-niche-zero-medium-14p5" (a decimal point becomes "p"). Only a plain number in
+  // the grinder's own published range is sent; anything else typed into the field gives null, so no free text
+  // ever leaves the page.
+  function goodEvent(gid, roast, setting) {
+    const g = grinder(gid);
+    if (!g || g.kind === 'none' || !ROASTS[roast]) return null;
+    const v = String(setting === undefined || setting === null ? '' : setting).trim();
+    if (!/^\d{1,3}(\.\d{1,2})?$/.test(v)) return null;
+    const n = parseFloat(v);
+    if (g.range && (n < g.range[0] - 10 * g.nudge || n > g.range[1] + 10 * g.nudge)) return null;
+    return 'good-' + g.id + '-' + roast + '-' + String(r2(n)).replace('.', 'p');
   }
 
   // A source string to {href, secondary}.
@@ -245,7 +277,8 @@
 
   const api = {
     ROASTS: ROASTS, TASTES: TASTES, recipe: recipe, fix: fix, grindMove: grindMove, warnings: warnings,
-    pressurised: pressurised, startSetting: startSetting, parseHash: parseHash, toHash: toHash, source: source
+    pressurised: pressurised, startSetting: startSetting, parseHash: parseHash, toHash: toHash, source: source,
+    goodEvent: goodEvent
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Setup = api;
@@ -270,13 +303,21 @@
   }
   fill($('machine'), D.MACHINES, 'Choose your machine…');
   fill($('grinder'), D.GRINDERS, 'Choose your grinder…');
+  (function fillCoffees(sel) {
+    sel.appendChild(new Option('Not listed / not sure (use the roast below)', ''));
+    let group = null;
+    CO.forEach((c) => {
+      if (!group || group.label !== c.roaster) { group = document.createElement('optgroup'); group.label = c.roaster; sel.appendChild(group); }
+      group.appendChild(new Option(c.coffee, c.id));
+    });
+  })($('coffee'));
 
   function state() {
     const r = form.querySelector('input[name="roast"]:checked');
-    return { m: $('machine').value, g: $('grinder').value, r: r ? r.value : 'medium' };
+    return { m: $('machine').value, g: $('grinder').value, r: r ? r.value : 'medium', c: $('coffee').value };
   }
   function setState(s) {
-    $('machine').value = s.m; $('grinder').value = s.g;
+    $('machine').value = s.m; $('grinder').value = s.g; $('coffee').value = s.c || '';
     const r = form.querySelector('input[name="roast"][value="' + s.r + '"]');
     if (r) r.checked = true;
   }
@@ -304,7 +345,7 @@
       if (m && m.builtIn && !$('grinder').dataset.touched) { $('grinder').value = m.builtIn; s.g = m.builtIn; $('grinder').dataset.auto = '1'; }
     }
     if (!s.m || !s.g) { out.hidden = true; $('shot-form').hidden = true; return; }
-    const r = recipe(s.m, s.g, s.r);
+    const r = recipe(s.m, s.g, s.r, s.c);
     current = r;
     $('fix').hidden = true;
     const ask = $('chipin-payoff');
@@ -365,6 +406,7 @@
     if (ask) ask.hidden = !f.ok;
     if (!f.ok) { out.appendChild(el('p', f.error, 'error')); return; }
     count('fix');
+    if (t && t.value === 'balanced') { const ev = goodEvent(s.g, s.r, $('s-setting').value); if (ev) count(ev); }
     out.appendChild(el('h3', f.headline));
     const ol = el('ol');
     f.steps.forEach((x) => ol.appendChild(el('li', x)));
@@ -389,6 +431,15 @@
     if (!out.hidden && out.getBoundingClientRect().top > root.innerHeight * 0.6 && out.scrollIntoView) out.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
   form.querySelectorAll('input[name="roast"]').forEach((r) => r.addEventListener('change', render));
+  $('coffee').addEventListener('change', () => {
+    const c = coffee($('coffee').value);
+    if (c) {
+      count('pick-c-' + c.id);
+      const r = c.roast && form.querySelector('input[name="roast"][value="' + c.roast + '"]');
+      if (r) r.checked = true;
+    }
+    render();
+  });
   $('s-setting').addEventListener('input', () => { $('s-setting').dataset.touched = '1'; });
   $('shot-form').addEventListener('submit', renderFix);
   form.addEventListener('submit', (e) => { e.preventDefault(); render(); });

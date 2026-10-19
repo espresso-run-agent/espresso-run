@@ -488,8 +488,12 @@
       const viz = el('div', undefined, 'viz');
       viz.appendChild(tile('Dose → yield', drawDoseYield(r)));
       const gm = gaugeModel(r.grinder, r.start);
-      if (gm) viz.appendChild(tile('Grind: ' + r.grinder.unit, drawGauge(gm, 'Start at ' + r.start + ' on a range of ' + gm.min + ' to ' + gm.max)));
-      else if (r.grinder.kind !== 'none') viz.appendChild(tile('Grind', r.start !== null && r.start !== undefined ? String(r.start) : 'From zero ↓'));
+      if (gm) {
+        const gt = tile('Grind: ' + r.grinder.unit, String(r.start));
+        gt.classList.add('grind');
+        gt.appendChild(drawGauge(gm, 'Start at ' + r.start + ' on a range of ' + gm.min + ' to ' + gm.max));
+        viz.appendChild(gt);
+      } else if (r.grinder.kind !== 'none') viz.appendChild(tile('Grind', r.start !== null && r.start !== undefined ? String(r.start) : 'From zero ↓'));
       else viz.appendChild(tile('Grind', 'Pre-ground'));
       const tb = tempBadge(r.machine, r.roast, r.coffee);
       const tt = tile('Temperature', tb.big);

@@ -404,6 +404,8 @@ table.rules td[data-label="Rule quote"] { min-width: 16em; }
 .taste-grid .t-good { border-left-color: #5d8f4e; }
 @media (max-width: 640px) {
   .viz { grid-template-columns: 1fr 1fr; }
-  .viz-tile:first-child { grid-column: 1 / -1; }
+  /* Dose and temperature share a row; the grind gauge needs the full width to stay readable. */
+  .viz-tile.grind { grid-column: 1 / -1; order: 1; }
+  .viz-tile.wide { order: 2; }
   .taste-grid { grid-template-columns: 1fr 1fr; }
 }

@@ -155,6 +155,10 @@ legend { font-weight: 600; font-size: 0.92rem; padding: 0; margin-bottom: 6px; }
 .result ol { padding-left: 1.3em; margin: 0 0 1em; }
 .result li { margin-bottom: 0.5em; }
 .error { color: var(--warn); font-weight: 600; }
+.warn-box, .note-box { border-radius: 8px; padding: 10px 14px; margin: 0 0 12px; }
+.warn-box { border: 2px solid var(--warn); font-weight: 600; }
+.note-box { background: var(--foam); border: 1px solid var(--line); }
+.sources a { word-break: break-all; }
 
 /* Table */
 .table-scroll { overflow-x: auto; }

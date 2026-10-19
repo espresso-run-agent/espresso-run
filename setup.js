@@ -275,10 +275,54 @@
     return { href: sec ? s.slice(4) : s, secondary: sec };
   }
 
+
+  /* ---------- Picture models (pure; the page draws them as SVG) ---------- */
+
+  // Where a setting sits on the grinder's espresso range, finest on the left: {min, max, at, to, ticks[], finer}
+  // with at/to as 0..1 positions (to only when a move is shown). null when the grinder publishes no range.
+  function gaugeModel(g, value, to) {
+    if (!g || !g.range || !isNum(value)) return null;
+    let [lo, hi] = g.range;
+    const span = hi - lo || 1;
+    const pad = span * 0.08;
+    const a = Math.min(lo, value, isNum(to) ? to : value) - pad;
+    const b = Math.max(hi, value, isNum(to) ? to : value) + pad;
+    const pos = (v) => r2((v - a) / (b - a));
+    const step = [0.1, 0.25, 0.5, 1, 2, 5, 10, 20].find((x) => span / x <= 6) || 20;
+    const ticks = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) ticks.push({ v: r2(v), at: pos(v) });
+    return { min: lo, max: hi, lo: pos(lo), hi: pos(hi), value: value, at: pos(value), to: isNum(to) ? to : null,
+      toAt: isNum(to) ? pos(to) : null, ticks: ticks, unit: g.unit };
+  }
+
+  // The shot on a clock: first drips window (the maker's), the target window (roaster's, else 25-30 s; lever
+  // machines 30-35 s), and the scale's stop weight. Times in seconds; max is the right end of the axis.
+  function timelineModel(m, c, yld) {
+    const lever = /flair|robot/.test(m.id);
+    const target = c && c.time ? [c.time[0], Math.max(c.time[1], c.time[0])] : lever ? [30, 35] : [25, 30];
+    const max = Math.max(40, target[1] + 8);
+    return { max: max, drips: m.flowStart || null, target: target, stop: yld, lever: lever };
+  }
+
+  // A short temperature label for the picture: a number when there is one, else the machine's own words.
+  function tempBadge(m, roast, c) {
+    const t = m.temp || {};
+    if (c && c.temp && t.kind === 'pid') return { big: c.temp + ' °C', small: 'as the roaster brews it' };
+    if ((t.kind === 'pid' || t.kind === 'steps') && t.set) {
+      const set = t.set[roast];
+      const n = set.match(/\((\d+(?:\.\d+)?) ?°C\)/) || set.match(/^(\d+(?:\.\d+)?) ?°C/);
+      if (n) return { big: n[1] + ' °C', small: set.replace(/\s*\(\d+(?:\.\d+)? ?°C\)/, '').replace(/^\d+(?:\.\d+)? ?°C/, '').replace(/^[\s:]+/, '') || (t.kind === 'pid' ? 'set on the PID' : '') };
+      return { big: set.length <= 14 ? set.replace(/^\w/, (x) => x.toUpperCase()) : roast === 'light' ? 'Hotter' : roast === 'dark' ? 'Cooler' : 'Default', small: set.length <= 14 ? 'setting' : set };
+    }
+    if (t.kind === 'fixed') return { big: 'Auto', small: 'the machine sets it' };
+    if (t.kind === 'kettle') return { big: 'Just boiled', small: 'water off the boil' };
+    return { big: 'No dial', small: 'warm-up routine below' };
+  }
+
   const api = {
     ROASTS: ROASTS, TASTES: TASTES, recipe: recipe, fix: fix, grindMove: grindMove, warnings: warnings,
     pressurised: pressurised, startSetting: startSetting, parseHash: parseHash, toHash: toHash, source: source,
-    goodEvent: goodEvent
+    goodEvent: goodEvent, gaugeModel: gaugeModel, timelineModel: timelineModel, tempBadge: tempBadge
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Setup = api;
@@ -336,6 +380,86 @@
     return ul;
   }
 
+
+  /* Pictures. Built with DOM calls (no innerHTML): every label is set as text. Colours come from style.css. */
+  const NS = 'http://www.w3.org/2000/svg';
+  function sv(tag, attrs, parent, text) {
+    const n = document.createElementNS(NS, tag);
+    Object.keys(attrs || {}).forEach((k) => n.setAttribute(k, attrs[k]));
+    if (text !== undefined) n.textContent = text;
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function svgBox(w, h, label) {
+    return sv('svg', { viewBox: '0 0 ' + w + ' ' + h, width: '100%', role: 'img', 'aria-label': label, class: 'viz-svg' });
+  }
+
+  // Beans in -> cup out.
+  function drawDoseYield(r) {
+    const s = svgBox(240, 96, r.dose + ' grams of coffee in, ' + r.yield + ' grams of espresso out');
+    sv('ellipse', { cx: 34, cy: 46, rx: 22, ry: 15, class: 'v-bean', transform: 'rotate(-25 34 46)' }, s);
+    sv('path', { d: 'M22 52 Q34 42 46 40', class: 'v-bean-line', transform: 'rotate(-25 34 46)' }, s);
+    sv('text', { x: 34, y: 88, class: 'v-num', 'text-anchor': 'middle' }, s, r.dose + ' g');
+    sv('path', { d: 'M78 46 H136 M126 36 L138 46 L126 56', class: 'v-arrow' }, s);
+    sv('text', { x: 107, y: 30, class: 'v-small', 'text-anchor': 'middle' }, s, r.ratioLabel);
+    sv('path', { d: 'M160 26 H214 V52 A16 16 0 0 1 198 68 H176 A16 16 0 0 1 160 52 Z', class: 'v-cup' }, s);
+    sv('path', { d: 'M214 34 A10 10 0 0 1 214 54', class: 'v-handle' }, s);
+    sv('ellipse', { cx: 187, cy: 30, rx: 25, ry: 4, class: 'v-crema' }, s);
+    sv('text', { x: 187, y: 88, class: 'v-num', 'text-anchor': 'middle' }, s, r.yield + ' g');
+    return s;
+  }
+
+  // The grinder's espresso range with the setting marked (and the move, for a fix).
+  function drawGauge(gm, label) {
+    const W = 300, x = (t) => 12 + t * (W - 24);
+    const s = svgBox(W, 92, label);
+    sv('line', { x1: x(0), y1: 46, x2: x(1), y2: 46, class: 'v-track' }, s);
+    sv('line', { x1: x(gm.lo), y1: 46, x2: x(gm.hi), y2: 46, class: 'v-band' }, s);
+    gm.ticks.forEach((t) => {
+      sv('line', { x1: x(t.at), y1: 40, x2: x(t.at), y2: 52, class: 'v-tick' }, s);
+      sv('text', { x: x(t.at), y: 68, class: 'v-small', 'text-anchor': 'middle' }, s, String(t.v));
+    });
+    sv('text', { x: 12, y: 88, class: 'v-small' }, s, '◀ finer');
+    sv('text', { x: W - 12, y: 88, class: 'v-small', 'text-anchor': 'end' }, s, 'coarser ▶');
+    if (gm.toAt !== null) {
+      const y = 26, a = x(gm.at), b = x(gm.toAt), d = b > a ? -1 : 1;
+      sv('path', { d: 'M' + a + ' ' + y + ' H' + b + ' M' + (b + 7 * d) + ' ' + (y - 6) + ' L' + b + ' ' + y + ' L' + (b + 7 * d) + ' ' + (y + 6), class: 'v-move' }, s);
+      sv('circle', { cx: a, cy: 46, r: 6, class: 'v-dot-old' }, s);
+      sv('circle', { cx: b, cy: 46, r: 8, class: 'v-dot' }, s);
+      sv('text', { x: b, y: 14, class: 'v-label', 'text-anchor': 'middle' }, s, String(gm.to));
+    } else {
+      sv('circle', { cx: x(gm.at), cy: 46, r: 8, class: 'v-dot' }, s);
+      sv('text', { x: x(gm.at), y: 26, class: 'v-label', 'text-anchor': 'middle' }, s, String(gm.value));
+    }
+    return s;
+  }
+
+  // The shot on a clock.
+  function drawTimeline(tm) {
+    const W = 300, x = (t) => 12 + (t / tm.max) * (W - 24);
+    const s = svgBox(W, 92, 'Shot timeline: first drips ' + (tm.drips ? tm.drips[0] + ' to ' + tm.drips[1] + ' s, ' : '') + 'aim for ' + tm.target[0] + ' to ' + tm.target[1] + ' s, stop at ' + tm.stop + ' g');
+    sv('line', { x1: x(0), y1: 46, x2: x(tm.max), y2: 46, class: 'v-track' }, s);
+    if (tm.drips) {
+      sv('rect', { x: x(tm.drips[0]), y: 38, width: Math.max(4, x(tm.drips[1]) - x(tm.drips[0])), height: 16, rx: 4, class: 'v-drips' }, s);
+      sv('text', { x: (x(tm.drips[0]) + x(tm.drips[1])) / 2, y: 30, class: 'v-small', 'text-anchor': 'middle' }, s, 'first drips');
+    }
+    sv('rect', { x: x(tm.target[0]), y: 36, width: Math.max(6, x(tm.target[1]) - x(tm.target[0])), height: 20, rx: 5, class: 'v-target' }, s);
+    sv('text', { x: (x(tm.target[0]) + x(tm.target[1])) / 2, y: 28, class: 'v-label', 'text-anchor': 'middle' }, s, 'stop at ' + tm.stop + ' g');
+    for (let t = 0; t <= tm.max; t += 10) {
+      sv('line', { x1: x(t), y1: 54, x2: x(t), y2: 60, class: 'v-tick' }, s);
+      sv('text', { x: x(t), y: 74, class: 'v-small', 'text-anchor': 'middle' }, s, t + ' s');
+    }
+    sv('text', { x: W - 12, y: 90, class: 'v-small', 'text-anchor': 'end' }, s, 'time is a check; weight decides');
+    return s;
+  }
+
+  function tile(title, body, wide) {
+    const d = el('div', undefined, 'viz-tile' + (wide ? ' wide' : ''));
+    d.appendChild(el('span', title, 'viz-title'));
+    if (typeof body === 'string') d.appendChild(el('b', body, 'viz-big')); else d.appendChild(body);
+    return d;
+  }
+
   let current = null;
   function render() {
     const s = state();
@@ -359,26 +483,33 @@
     count('recipe');
     out.appendChild(el('h2', 'Your first shot', ''));
     out.querySelector('h2').id = 'recipe-h';
+    r.warnings.filter((w) => w.level === 'stop').forEach((w) => out.appendChild(el('p', w.text, 'warn-box')));
     if (!r.auto) {
-      const stats = el('div', undefined, 'stats');
-      const stat = (label, value) => { const d = el('div', undefined, 'stat'); d.appendChild(el('b', String(value))); d.appendChild(el('span', label)); stats.appendChild(d); };
-      stat('Dose', r.dose + ' g');
-      stat('Yield', r.yield + ' g');
-      stat('Ratio', r.ratioLabel);
-      if (r.start !== null && r.start !== undefined) stat(r.grinder.unit.replace(/^\w/, (c) => c.toUpperCase()), r.start);
-      out.appendChild(stats);
+      const viz = el('div', undefined, 'viz');
+      viz.appendChild(tile('Dose → yield', drawDoseYield(r)));
+      const gm = gaugeModel(r.grinder, r.start);
+      if (gm) viz.appendChild(tile('Grind: ' + r.grinder.unit, drawGauge(gm, 'Start at ' + r.start + ' on a range of ' + gm.min + ' to ' + gm.max)));
+      else if (r.grinder.kind !== 'none') viz.appendChild(tile('Grind', r.start !== null && r.start !== undefined ? String(r.start) : 'From zero ↓'));
+      else viz.appendChild(tile('Grind', 'Pre-ground'));
+      const tb = tempBadge(r.machine, r.roast, r.coffee);
+      const tt = tile('Temperature', tb.big);
+      tt.appendChild(el('span', tb.small, 'viz-sub'));
+      viz.appendChild(tt);
+      viz.appendChild(tile('The shot', drawTimeline(timelineModel(r.machine, r.coffee, r.yield)), true));
+      out.appendChild(viz);
     }
-    r.warnings.forEach((w) => out.appendChild(el('p', w.text, w.level === 'stop' ? 'warn-box' : 'note-box')));
+    r.warnings.filter((w) => w.level !== 'stop').forEach((w) => out.appendChild(el('p', w.text, 'note-box')));
+    out.appendChild(el('h3', 'Step by step'));
     const ol = el('ol');
     r.steps.forEach((t) => ol.appendChild(el('li', t)));
     out.appendChild(ol);
+    const det = el('details');
+    det.appendChild(el('summary', 'Tips for your gear, and where these numbers come from'));
     if (r.notes && r.notes.length) {
       const ul = el('ul', undefined, 'plain fine');
       r.notes.forEach((t) => ul.appendChild(el('li', t)));
-      out.appendChild(ul);
+      det.appendChild(ul);
     }
-    const det = el('details');
-    det.appendChild(el('summary', 'Where these numbers come from'));
     det.appendChild(el('p', 'The dose, controls and settings come from the makers\' manuals where they publish them; "secondary" marks a retailer or review used where they don\'t. The roast changes to ratio, temperature and grind are our own estimate. Grinders vary from unit to unit, so treat the grind number as a starting point.', 'fine'));
     det.appendChild(r.sources.length ? sourcesList(r.sources) : el('p', 'No published source for this generic entry: general guidance only.', 'fine'));
     out.appendChild(det);
@@ -411,6 +542,14 @@
     count('fix');
     if (t && t.value === 'balanced') { const ev = goodEvent(s.g, s.r, $('s-setting').value); if (ev) count(ev); }
     out.appendChild(el('h3', f.headline));
+    const viz = el('div', undefined, 'viz');
+    const gm = f.move && f.move.to !== null ? gaugeModel(current.grinder, f.move.from, f.move.to) : null;
+    if (gm) viz.appendChild(tile('Next: grind ' + f.grind, drawGauge(gm, 'Move from ' + f.move.from + ' to ' + f.move.to), true));
+    else if (f.grind !== 'keep') viz.appendChild(tile('Next: grind', f.grind === 'finer' ? '◀ Finer' : 'Coarser ▶'));
+    else viz.appendChild(tile('Grind', 'Keep it'));
+    if (f.suggestedYield) viz.appendChild(tile('Next: stop at', f.yield + ' g → ' + f.suggestedYield + ' g'));
+    viz.appendChild(tile('This shot', f.ratioLabel + ' in ' + Math.round(f.time) + ' s'));
+    out.appendChild(viz);
     const ol = el('ol');
     f.steps.forEach((x) => ol.appendChild(el('li', x)));
     out.appendChild(ol);

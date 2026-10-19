@@ -12,11 +12,13 @@
   const DI = root.DialIn || (typeof require === 'function' ? require('./dial-in.js') : null);
   const CO = root.SetupCoffees || (typeof require === 'function' ? require('./setup-coffees.js') : []);
 
-  /* Starting ratio by roast (Hoffmann, Hedrick, Perger: light runs longer, dark shorter; see notes/setup-research.md). */
+  /* Starting ratio by roast (Hoffmann, Hedrick, Perger: light runs longer; see notes/setup-research.md). Checked against
+     1,857 public espresso shots on Visualizer.coffee (tools/visualizer/stats.py, 2026-10-19), median per person: light
+     2.44, medium 2.15, dark 2.03 (24 people, middle half 1.97 to 2.14), so dark starts at 1:2, not 1:1.8. */
   const ROASTS = {
     light: { label: 'Light', ratio: 2.5, why: 'Light roasts are harder to extract: a longer ratio and hotter water.' },
     medium: { label: 'Medium', ratio: 2, why: 'Medium roasts: the classic 1:2.' },
-    dark: { label: 'Dark', ratio: 1.8, why: 'Dark roasts extract easily: a shorter ratio and cooler water keep bitterness down.' }
+    dark: { label: 'Dark', ratio: 2, why: 'Dark roasts extract easily: cooler water keeps bitterness down; if it is still bitter, stop shorter (1:1.8).' }
   };
   const TASTES = ['sour', 'balanced', 'bitter', 'weak', 'harsh', 'sourbitter'];
 

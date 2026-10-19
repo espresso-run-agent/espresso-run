@@ -347,6 +347,9 @@
     if (!s.m || !s.g) { out.hidden = true; $('shot-form').hidden = true; return; }
     const r = recipe(s.m, s.g, s.r, s.c);
     current = r;
+    // A listed coffee sets the roast (recipe() uses the roaster's level), so keep the buttons in step with it.
+    const rb = r.ok && form.querySelector('input[name="roast"][value="' + r.roast + '"]');
+    if (rb) rb.checked = true;
     $('fix').hidden = true;
     const ask = $('chipin-payoff');
     if (ask) ask.hidden = true;

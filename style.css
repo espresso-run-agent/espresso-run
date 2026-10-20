@@ -389,10 +389,10 @@ table.rules td[data-label="Rule quote"] { min-width: 16em; }
 .v-track { stroke: var(--line); stroke-width: 6; stroke-linecap: round; }
 .v-real { fill: var(--caramel); fill-opacity: 0.22; }
 .v-real-med { stroke: var(--caramel); stroke-opacity: 0.9; stroke-width: 2; stroke-dasharray: 3 3; }
-.v-needle { stroke: var(--cream); stroke-width: 3; stroke-linecap: round; }
+.v-needle { stroke: var(--roast); stroke-width: 3; stroke-linecap: round; }
 .v-grid { stroke: var(--line); stroke-width: 1; }
 .v-path { fill: none; stroke: var(--caramel); stroke-width: 2; stroke-opacity: 0.7; }
-.v-dot-good { fill: #5d8f4e; }
+.v-dot.v-dot-good { fill: #5d8f4e; }
 .v-band { stroke: var(--caramel); stroke-opacity: 0.45; stroke-width: 10; stroke-linecap: round; }
 .v-tick { stroke: var(--mocha); stroke-width: 1.5; }
 .v-dot { fill: var(--caramel-dark); stroke: var(--cream); stroke-width: 3; }
@@ -428,3 +428,4 @@ table.rules td[data-label="Rule quote"] { min-width: 16em; }
 .pull[data-phase="over"] .pull-phase { color: var(--caramel); }
 #pull-viz .viz-svg, #pull-viz svg { width: 100%; max-height: 120px; }
 .share-note { align-self: center; }
+#session .viz-svg { max-height: 190px; }

@@ -331,10 +331,37 @@
     return { big: 'No dial', small: 'warm-up routine below' };
   }
 
+  // Live coaching while the shot runs: what to watch for at t seconds, from the timeline model.
+  function timerPhase(t, tm) {
+    const d = tm.drips, a = tm.target[0], b = tm.target[1];
+    if (d && t < d[0]) return { phase: 'pre', text: 'Pump on. Watch for the first drips around ' + d[0] + ' to ' + d[1] + ' s.' };
+    if (d && t <= d[1]) return { phase: 'drips', text: 'First drips should show about now.' };
+    if (t < a) return { phase: 'run', text: 'Keep going: aim for ' + tm.stop + ' g on the scale at ' + a + ' to ' + b + ' s.' };
+    if (t <= b) return { phase: 'target', text: 'In the window: stop when the scale reads ' + tm.stop + ' g.' };
+    return { phase: 'over', text: 'Past ' + b + ' s: stop at ' + tm.stop + ' g anyway, then say how it tasted.' };
+  }
+
+  // This visit's shots on one chart: shot number across, time up, the target window shaded.
+  function sessionModel(shots, target) {
+    const maxT = Math.max(40, target[1] + 8, ...shots.map((x) => x.time + 4));
+    const n = Math.max(shots.length, 3);
+    return { maxT: maxT, n: n, target: target, points: shots.map((x, i) => ({
+      i: i + 1, x: r2((i + 0.5) / n), y: r2(x.time / maxT), time: x.time, setting: x.setting, taste: x.taste, good: x.taste === 'balanced' })) };
+  }
+
+  const shortName = (x) => x.name.replace(/\s*\(.*\)\s*$/, '');
+  // What "Share this recipe" posts: the numbers that worked, and a link that opens the same setup.
+  function shareText(m, g, shot, url) {
+    return 'My espresso on a ' + shortName(m) + ' with a ' + shortName(g) + ': ' + shot.dose + ' g in, ' + shot.yield + ' g out in ' +
+      Math.round(shot.time) + ' s' + (shot.setting !== '' && shot.setting !== null && shot.setting !== undefined ? ', grind ' + shot.setting : '') +
+      '. A first-shot recipe for your own machine and grinder: ' + url;
+  }
+
   const api = {
     ROASTS: ROASTS, TASTES: TASTES, recipe: recipe, fix: fix, grindMove: grindMove, warnings: warnings,
     pressurised: pressurised, startSetting: startSetting, parseHash: parseHash, toHash: toHash, source: source,
-    goodEvent: goodEvent, gaugeModel: gaugeModel, timelineModel: timelineModel, tempBadge: tempBadge, realFor: realFor
+    goodEvent: goodEvent, gaugeModel: gaugeModel, timelineModel: timelineModel, tempBadge: tempBadge, realFor: realFor,
+    timerPhase: timerPhase, sessionModel: sessionModel, shareText: shareText
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Setup = api;
@@ -476,6 +503,77 @@
     return d;
   }
 
+  // The live shot timer: a needle runs along the shot timeline and the coaching line changes as the shot goes.
+  const pull = { tm: null, needle: null, t0: 0, raf: 0, running: false, phase: '' };
+  const needleX = (t) => 12 + (Math.min(t, pull.tm.max) / pull.tm.max) * (300 - 24);
+  function setupPull(tm) {
+    stopPull(false);
+    pull.tm = tm;
+    const svg = drawTimeline(tm);
+    pull.needle = sv('line', { x1: needleX(0), y1: 18, x2: needleX(0), y2: 62, class: 'v-needle' }, svg);
+    $('pull-viz').replaceChildren(svg);
+    $('pull-time').textContent = '0.0 s';
+    $('pull-btn').textContent = 'Start shot';
+    $('pull-phase').textContent = 'Put the cup on the scale and tare it. Tap Start when you start the pump.';
+    delete $('pull').dataset.phase;
+  }
+  function tickPull() {
+    const t = (performance.now() - pull.t0) / 1000;
+    $('pull-time').textContent = t.toFixed(1) + ' s';
+    const x = needleX(t);
+    pull.needle.setAttribute('x1', x); pull.needle.setAttribute('x2', x);
+    const ph = timerPhase(t, pull.tm);
+    if (ph.phase !== pull.phase) { pull.phase = ph.phase; $('pull-phase').textContent = ph.text; $('pull').dataset.phase = ph.phase; }
+    pull.raf = requestAnimationFrame(tickPull);
+  }
+  function stopPull(record) {
+    if (!pull.running) return;
+    cancelAnimationFrame(pull.raf);
+    pull.running = false;
+    if (!record) return;
+    const t = (performance.now() - pull.t0) / 1000;
+    $('s-time').value = t.toFixed(1);
+    $('pull-btn').textContent = 'Start again';
+    $('pull-phase').textContent = 'Stopped at ' + t.toFixed(1) + ' s. Check the yield on the scale, then pick how it tasted.';
+    count('pull');
+    const tg = $('shot-form').querySelector('fieldset');
+    if (tg && tg.scrollIntoView) tg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // This visit's shots, in memory only (gone when the page closes).
+  let session = [], sessionKey = '';
+  function drawSession(sm) {
+    const W = 300, H = 132, L = 30, R = 8, T = 14, B = 106;
+    const x = (f) => L + f * (W - L - R), y = (t) => B - (t / sm.maxT) * (B - T);
+    const s = svgBox(W, H, 'Your shots this visit: ' + sm.points.map((p) => 'shot ' + p.i + ', ' + p.time + ' s' + (p.setting ? ' at ' + p.setting : '') + ', ' + p.taste).join('; '));
+    sv('rect', { x: L, y: y(sm.target[1]), width: W - L - R, height: y(sm.target[0]) - y(sm.target[1]), class: 'v-real' }, s);
+    sv('text', { x: W - R - 2, y: y(sm.target[1]) - 3, class: 'v-small', 'text-anchor': 'end' }, s, 'target ' + sm.target[0] + ' to ' + sm.target[1] + ' s');
+    for (let t = 0; t <= sm.maxT; t += 20) {
+      sv('line', { x1: L, y1: y(t), x2: W - R, y2: y(t), class: 'v-grid' }, s);
+      sv('text', { x: L - 4, y: y(t) + 3, class: 'v-small', 'text-anchor': 'end' }, s, t + ' s');
+    }
+    if (sm.points.length > 1) sv('polyline', { points: sm.points.map((p) => x(p.x) + ',' + y(p.time)).join(' '), class: 'v-path' }, s);
+    sm.points.forEach((p) => {
+      sv('circle', { cx: x(p.x), cy: y(p.time), r: 7, class: p.good ? 'v-dot v-dot-good' : 'v-dot' }, s);
+      if (p.setting) sv('text', { x: x(p.x), y: y(p.time) - 11, class: 'v-label', 'text-anchor': 'middle' }, s, String(p.setting));
+      sv('text', { x: x(p.x), y: H - 8, class: 'v-small', 'text-anchor': 'middle' }, s, 'shot ' + p.i);
+    });
+    return s;
+  }
+  function renderSession() {
+    const box = $('session');
+    box.replaceChildren();
+    if (!session.length) { box.hidden = true; return; }
+    box.hidden = false;
+    box.appendChild(el('h3', 'Your dial-in so far'));
+    const tm = timelineModel(current.machine, current.coffee, current.yield);
+    const t = tile(session.length + (session.length === 1 ? ' shot' : ' shots') + ' this visit', drawSession(sessionModel(session, tm.target)), true);
+    t.appendChild(el('span', 'Each dot is a shot: its time, with your grinder setting above it. Green is a shot you marked Good. This stays on this page only.', 'viz-sub'));
+    const v = el('div', undefined, 'viz');
+    v.appendChild(t);
+    box.appendChild(v);
+  }
+
   let current = null;
   function render() {
     const s = state();
@@ -487,6 +585,7 @@
     if (!s.m || !s.g) { out.hidden = true; $('shot-form').hidden = true; return; }
     const r = recipe(s.m, s.g, s.r, s.c);
     current = r;
+    if (s.m + '|' + s.g !== sessionKey) { session = []; sessionKey = s.m + '|' + s.g; }
     // A listed coffee sets the roast (recipe() uses the roaster's level), so keep the buttons in step with it.
     const rb = r.ok && form.querySelector('input[name="roast"][value="' + r.roast + '"]');
     if (rb) rb.checked = true;
@@ -545,7 +644,9 @@
 
     const card = $('shot-form');
     card.hidden = !!r.auto;
+    renderSession();
     if (!r.auto) {
+      setupPull(timelineModel(r.machine, r.coffee, r.yield));
       $('s-dose').value = r.dose; $('s-yield').value = r.yield;
       const sg = $('s-setting');
       sg.closest('div').hidden = r.grinder.kind === 'none';
@@ -565,6 +666,9 @@
     if (!f.ok) { out.appendChild(el('p', f.error, 'error')); return; }
     count('fix');
     if (t && t.value === 'balanced') { const ev = goodEvent(s.g, s.r, $('s-setting').value); if (ev) count(ev); }
+    const shot = { dose: f.dose, yield: f.yield, time: Math.round(f.time * 10) / 10, setting: $('s-setting').value.trim(), taste: t.value };
+    const last = session[session.length - 1];
+    if (!last || JSON.stringify(last) !== JSON.stringify(shot)) session.push(shot);
     out.appendChild(el('h3', f.headline));
     const viz = el('div', undefined, 'viz');
     const gm = f.move && f.move.to !== null ? gaugeModel(current.grinder, f.move.from, f.move.to, realFor(current.grinder.id, s.r).grind) : null;
@@ -580,9 +684,30 @@
     if (f.nextSetting !== null) {
       const b = el('button', 'Pulled it? Set ' + current.grinder.unit + ' to ' + f.nextSetting + ' and check the next shot', 'btn secondary');
       b.type = 'button';
-      b.addEventListener('click', () => { $('s-setting').value = f.nextSetting; $('s-setting').dataset.touched = '1'; $('s-time').value = ''; out.hidden = true; $('s-time').focus(); });
+      b.addEventListener('click', () => {
+        $('s-setting').value = f.nextSetting; $('s-setting').dataset.touched = '1'; $('s-time').value = ''; out.hidden = true;
+        setupPull(pull.tm);
+        if ($('pull').scrollIntoView) $('pull').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
       out.appendChild(b);
     }
+    if (shot.taste === 'balanced') {
+      const row = el('div', undefined, 'btn-row');
+      const sb = el('button', 'Share this recipe', 'btn');
+      sb.type = 'button';
+      const note = el('span', '', 'fine share-note');
+      sb.addEventListener('click', async () => {
+        const text = shareText(current.machine, current.grinder, shot, location.origin + location.pathname + toHash(s));
+        count('share');
+        if (navigator.share) {
+          try { await navigator.share({ text: text }); return; } catch (err) { if (err && err.name === 'AbortError') return; }
+        }
+        try { await navigator.clipboard.writeText(text); note.textContent = 'Copied. Paste it wherever you like.'; } catch (err) { note.textContent = text; }
+      });
+      row.appendChild(sb); row.appendChild(note);
+      out.appendChild(row);
+    }
+    renderSession();
   }
 
   ['machine', 'grinder'].forEach((id) => $(id).addEventListener('change', () => {
@@ -608,6 +733,13 @@
   });
   $('s-setting').addEventListener('input', () => { $('s-setting').dataset.touched = '1'; });
   $('shot-form').addEventListener('submit', renderFix);
+  $('pull-btn').addEventListener('click', () => {
+    if (pull.running) { stopPull(true); return; }
+    if (!pull.tm) return;
+    pull.t0 = performance.now(); pull.running = true; pull.phase = '';
+    $('pull-btn').textContent = 'Stop';
+    tickPull();
+  });
   form.addEventListener('submit', (e) => { e.preventDefault(); render(); });
 
   const initial = parseHash(location.hash);

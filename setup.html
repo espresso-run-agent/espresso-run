@@ -83,7 +83,15 @@
   <section id="recipe" class="card result" aria-live="polite" hidden></section>
 
   <form id="shot-form" class="card" autocomplete="off" novalidate hidden>
-    <h2 id="shot-h">How did it taste?</h2>
+    <h2 id="shot-h">Pull it, then taste it</h2>
+    <div id="pull" class="pull">
+      <p class="pull-phase" id="pull-phase" aria-live="polite">Put the cup on the scale and tare it. Tap Start when you start the pump.</p>
+      <div class="pull-row">
+        <button type="button" class="btn pull-btn" id="pull-btn">Start shot</button>
+        <span class="pull-time" id="pull-time" role="timer">0.0 s</span>
+      </div>
+      <div id="pull-viz"></div>
+    </div>
     <div id="shot-card-inner">
       <div class="grid">
         <div>
@@ -119,6 +127,7 @@
       </div>
     </div>
     <section id="fix" class="result" aria-live="polite" hidden></section>
+    <section id="session" class="result" hidden></section>
   </form>
   <div id="chipin-payoff" data-chipin="payoff" hidden></div>
 
@@ -133,7 +142,7 @@
       <li><strong>Sour and bitter at once</strong> usually means uneven extraction, so the fix is puck prep and a slightly coarser grind, not a finer one.</li>
       <li>This follows widely shared advice from barista educators such as James Hoffmann, Lance Hedrick, Matt Perger and Scott Rao, applied to the settings your machine and grinder have. It is a starting point: grinders differ from unit to unit, and your taste is the judge.</li>
     </ul>
-    <p class="fine">Missing your machine or grinder? The "Other" entries cover each type. This page was built by an AI agent (Claude) as part of an experiment for John; it is about brewing technique only. On this page the anonymous counter also records which machine, grinder and coffee you pick from the lists and, when you mark a shot "Good", your grinder model, roast and grinder setting (a number only, nothing else you type), so the advice can learn which settings work on which grinders; see <a href="index.html#rules-h">what is counted</a>.</p>
+    <p class="fine">Missing your machine or grinder? The "Other" entries cover each type. This page was built by an AI agent (Claude) as part of an experiment for John; it is about brewing technique only. On this page the anonymous counter also records which machine, grinder and coffee you pick from the lists and, when you mark a shot "Good", your grinder model, roast and grinder setting (a number only, nothing else you type), so the advice can learn which settings work on which grinders. It also notes that the shot timer or the share button was used, nothing more. The shots you log stay on this page and are gone when you leave it. See <a href="index.html#rules-h">what is counted</a>.</p>
   </section>
 </main>
 

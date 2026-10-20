@@ -19,7 +19,8 @@
     return steps.map(function (s, i) {
       const prev = i ? steps[i - 1][1] : null;
       return { label: s[0], n: s[1] === null || s[1] === undefined ? null : s[1],
-        share: i && prev ? s[1] / prev : null };
+        // Over 100% means the step isn't a subset of the one before (a visitor who opens two pages lands twice): no share.
+        share: i && prev && s[1] !== null && s[1] <= prev ? s[1] / prev : null };
     });
   }
 
@@ -75,7 +76,7 @@
       fill.style.width = s.n ? Math.max(2, 100 * Math.log10(1 + s.n) / Math.log10(1 + max)) + '%' : '0';
       bar.appendChild(fill);
       row.appendChild(bar);
-      row.appendChild(el('b', s.n === null ? '…' : String(Math.round(s.n)), 'fn-n'));
+      row.appendChild(el('b', s.n === null ? '…' : Math.round(s.n).toLocaleString('en-US'), 'fn-n'));
       row.appendChild(el('span', s.share === null ? '' : pct(s.share) + ' of the step before', 'fn-share'));
       box.appendChild(row);
     });
@@ -109,7 +110,7 @@
     tb.replaceChildren();
     ads.filter(function (a) { return a.name !== 'unattributed'; }).forEach(function (a) {
       const tr = el('tr');
-      [[a.name, 'Ad'], [String(Math.round(a.impressions || 0)), 'Shown'], [String(Math.round(a.clicks || 0)), 'Clicks'],
+      [[a.name, 'Ad'], [Math.round(a.impressions || 0).toLocaleString('en-US'), 'Shown'], [String(Math.round(a.clicks || 0)), 'Clicks'],
         [a.impressions ? pct(a.clicks / a.impressions) : '', 'Click rate'], [money(a.spend_usd), 'Spent'],
         [a.landed === null ? '' : String(Math.round(a.landed)), 'Landed'], [String(Math.round(a.payments || 0)), 'Paid']]
         .forEach(function (c) { const td = el('td', c[0]); td.setAttribute('data-label', c[1]); tr.appendChild(td); });

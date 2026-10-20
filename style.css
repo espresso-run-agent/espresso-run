@@ -444,3 +444,7 @@ details.steps > summary { font-weight: 700; font-size: 1.05rem; cursor: pointer;
 @media (max-width: 560px) { .fn-row { grid-template-columns: 1fr 3.5em; } .fn-bar { grid-column: 1 / -1; grid-row: 2; } }
 .want-row { display: flex; gap: 8px; margin-top: 8px; }
 .want-row input { flex: 1; min-width: 0; }
+
+/* Recipe pages (espresso-*.html, grinder-*.html, recipes.html) */
+ul.cols { columns: 2 14em; column-gap: 2em; padding-left: 1.2em; }
+ul.cols li { break-inside: avoid; margin-bottom: 4px; }

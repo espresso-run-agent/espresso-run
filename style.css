@@ -366,7 +366,10 @@ table.rules td[data-label="Rule quote"] { min-width: 16em; }
 }
 
 /* Setup page pictures */
-.viz { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0 0 16px; }
+.viz { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 16px; }
+/* Dose and temperature share a row; the grind gauge (with the owners' band) needs the full width to stay readable. */
+.viz-tile.grind { grid-column: 1 / -1; order: 1; }
+.viz-tile.wide { order: 2; }
 .viz-tile { background: var(--foam); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .viz-tile.wide { grid-column: 1 / -1; }
 .viz-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mocha); }
@@ -405,10 +408,6 @@ table.rules td[data-label="Rule quote"] { min-width: 16em; }
 .taste-grid .t-harsh { border-left-color: #b24a34; }
 .taste-grid .t-good { border-left-color: #5d8f4e; }
 @media (max-width: 640px) {
-  .viz { grid-template-columns: 1fr 1fr; }
-  /* Dose and temperature share a row; the grind gauge needs the full width to stay readable. */
-  .viz-tile.grind { grid-column: 1 / -1; order: 1; }
-  .viz-tile.wide { order: 2; }
   .taste-grid { grid-template-columns: 1fr 1fr; }
   #setup-form .grid { grid-template-columns: 1fr; }
 }

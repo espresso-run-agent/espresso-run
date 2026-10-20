@@ -477,8 +477,10 @@
     const rb = r.ok && form.querySelector('input[name="roast"][value="' + r.roast + '"]');
     if (rb) rb.checked = true;
     $('fix').hidden = true;
+    // The ask follows the recipe itself: almost nobody pulls a shot and comes back in the same visit (0 of 5 ad
+    // visitors saw it when it waited for a tasted shot, 10-19).
     const ask = $('chipin-payoff');
-    if (ask) ask.hidden = true;
+    if (ask) ask.hidden = !!r.auto;
     out.replaceChildren();
     out.hidden = false;
     if (history.replaceState) history.replaceState(null, '', location.pathname + location.search + toHash(s));
@@ -542,8 +544,6 @@
     const out = $('fix');
     out.replaceChildren();
     out.hidden = false;
-    const ask = $('chipin-payoff');
-    if (ask) ask.hidden = !f.ok;
     if (!f.ok) { out.appendChild(el('p', f.error, 'error')); return; }
     count('fix');
     if (t && t.value === 'balanced') { const ev = goodEvent(s.g, s.r, $('s-setting').value); if (ev) count(ev); }

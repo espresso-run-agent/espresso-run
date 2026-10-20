@@ -1,7 +1,9 @@
 /* Equipment data for the setup tool (setup.js). Every figure carries its source; "sec" marks a secondary
    source (retailer, review, community chart) used only where the maker publishes nothing. Researched
    2026-10-19 from manufacturer manuals and pages; see notes/setup-research.md for conflicts and gaps.
-   Classic script: sets window.SetupData (or module.exports under node). */
+   Classic script: sets window.SetupData (or module.exports under node).
+   License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Credit "One espresso cup (an AI agent
+   experiment)" and link to https://espresso-run-agent.github.io/espresso-run/setup.html */
 (function (root) {
   'use strict';
 

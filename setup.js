@@ -384,6 +384,26 @@
       '. A first-shot recipe for your own machine and grinder: ' + url;
   }
 
+  // The recipe card image (saved to the phone, shared with a Good shot): what it says, as plain rows.
+  // shot is optional; with one, the card shows the shot that worked instead of the starting recipe.
+  function cardModel(r, shot) {
+    const g = r.grinder, tb = tempBadge(r.machine, r.roast, r.coffee);
+    const rows = [['Dose', (shot ? shot.dose : r.dose) + ' g']];
+    const set = shot ? shot.setting : r.start;
+    if (g.kind === 'none') rows.push(['Grind', 'pre-ground']);
+    else if (set !== null && set !== undefined && set !== '') rows.push([g.unit ? g.unit[0].toUpperCase() + g.unit.slice(1) : 'Grind', String(set)]);
+    else rows.push(['Grind', 'from zero, see steps']);
+    rows.push(['Temperature', tb.big]);
+    rows.push(['Stop at', (shot ? shot.yield : r.yield) + ' g in the cup']);
+    if (shot && shot.time) rows.push(['Time', Math.round(shot.time) + ' s']);
+    return {
+      title: shot ? 'My espresso, dialled in' : 'My first-shot recipe',
+      machine: shortName(r.machine), grinder: g.kind === 'none' ? 'pre-ground coffee' : r.machine.builtIn === g.id ? 'its built-in grinder' : shortName(g),
+      roast: (r.coffee ? r.coffee.roaster + ' ' + r.coffee.coffee : r.roast + ' roast'),
+      rows: rows, url: 'espresso-run-agent.github.io/espresso-run/setup.html'
+    };
+  }
+
   // "Missing your model?": what the visitor types becomes a counter event of letters, digits and dashes only
   // (want-m-gaggia-classic, at most 40 characters), so I can add the most-asked models. Null for anything too short.
   const GENERIC = ['other-hx', 'other-pid', 'other-pressurised', 'bean-to-cup', 'not-espresso'];
@@ -403,7 +423,7 @@
     ROASTS: ROASTS, TASTES: TASTES, recipe: recipe, fix: fix, grindMove: grindMove, warnings: warnings,
     pressurised: pressurised, startSetting: startSetting, parseHash: parseHash, toHash: toHash, source: source,
     goodEvent: goodEvent, gaugeModel: gaugeModel, timelineModel: timelineModel, tempBadge: tempBadge, realFor: realFor,
-    timerPhase: timerPhase, sessionModel: sessionModel, shareText: shareText, brandOf: brandOf, wantEvent: wantEvent, GENERIC: GENERIC
+    timerPhase: timerPhase, sessionModel: sessionModel, shareText: shareText, cardModel: cardModel, brandOf: brandOf, wantEvent: wantEvent, GENERIC: GENERIC
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Setup = api;
@@ -632,6 +652,47 @@
     box.appendChild(v);
   }
 
+  // The recipe card as a 1080 x 1350 PNG (a phone-photo shape), drawn from cardModel.
+  function cardBlob(cm) {
+    const W = 1080, H = 1350, c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    const serif = 'Georgia, "Times New Roman", serif', sans = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+    x.fillStyle = '#f5ede1'; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#2b1810'; x.fillRect(0, 0, W, 24);
+    const fit = (text, font, max) => { let sz = font[0]; x.font = font[1].replace('#', sz); while (x.measureText(text).width > max && sz > 20) { sz -= 2; x.font = font[1].replace('#', sz); } };
+    x.fillStyle = '#2b1810'; fit(cm.title, [76, '700 #px ' + serif], W - 160); x.fillText(cm.title, 80, 160);
+    x.fillStyle = '#6b4a35'; fit(cm.machine, [44, '600 #px ' + sans], W - 160); x.fillText(cm.machine, 80, 240);
+    fit('with ' + cm.grinder + ' · ' + cm.roast, [34, '#px ' + sans], W - 160); x.fillText('with ' + cm.grinder + ' · ' + cm.roast, 80, 296);
+    x.fillStyle = '#fffaf2'; x.strokeStyle = '#b5703a'; x.lineWidth = 4;
+    const top = 360, rh = 150, boxH = rh * cm.rows.length + 40;
+    if (x.roundRect) { x.beginPath(); x.roundRect(60, top, W - 120, boxH, 28); x.fill(); x.stroke(); } else { x.fillRect(60, top, W - 120, boxH); x.strokeRect(60, top, W - 120, boxH); }
+    cm.rows.forEach((row, i) => {
+      const y = top + 40 + i * rh;
+      if (i) { x.strokeStyle = '#e8d8c4'; x.lineWidth = 3; x.beginPath(); x.moveTo(100, y - 10); x.lineTo(W - 100, y - 10); x.stroke(); }
+      x.fillStyle = '#6b4a35'; x.font = '40px ' + sans; x.fillText(row[0], 110, y + 80);
+      x.fillStyle = '#2b1810'; fit(row[1], [72, '700 #px ' + serif], 560); const w = x.measureText(row[1]).width; x.fillText(row[1], W - 110 - w, y + 88);
+    });
+    x.fillStyle = '#b5703a'; x.font = '600 34px ' + sans; x.fillText('Free recipe for your own machine and grinder:', 80, H - 130);
+    x.fillStyle = '#2b1810'; fit(cm.url, [38, '700 #px ' + sans], W - 160); x.fillText(cm.url, 80, H - 78);
+    x.fillStyle = '#6b4a35'; x.font = '26px ' + sans; x.fillText('Made by an AI agent from the makers\' manuals. Taste decides.', 80, H - 34);
+    return new Promise((res) => c.toBlob(res, 'image/png'));
+  }
+  // Share the card where the phone can (share sheet with the image), else download it. Returns what happened.
+  async function sendCard(cm, text, name) {
+    const blob = await cardBlob(cm);
+    if (!blob) return 'failed';
+    const file = typeof File !== 'undefined' ? new File([blob], name, { type: 'image/png' }) : null;
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], text: text }); return 'shared'; } catch (err) { if (err && err.name === 'AbortError') return 'cancelled'; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    return 'saved';
+  }
+
   let current = null;
   function render() {
     const s = state();
@@ -688,6 +749,18 @@
         $('pull-btn').focus({ preventScroll: true });
       });
       out.appendChild(go);
+      // A card for the phone's photos, to keep by the machine (and the site's address goes wherever it's shown).
+      const cardRow = el('div', undefined, 'btn-row');
+      const cb = el('button', 'Save this recipe as an image', 'btn secondary');
+      cb.type = 'button';
+      const cn = el('span', '', 'fine share-note');
+      cb.addEventListener('click', async () => {
+        count('card');
+        const how = await sendCard(cardModel(r), 'My first-shot espresso recipe: ' + location.origin + location.pathname + toHash(s), 'espresso-recipe.png');
+        cn.textContent = how === 'saved' ? 'Saved to your downloads.' : how === 'failed' ? 'Your browser couldn\'t make the image.' : '';
+      });
+      cardRow.appendChild(cb); cardRow.appendChild(cn);
+      out.appendChild(cardRow);
     }
     r.warnings.filter((w) => w.level !== 'stop').forEach((w) => out.appendChild(el('p', w.text, 'note-box')));
     // Folded when the tiles already carry the numbers; open when the grind start lives only in the steps.
@@ -770,6 +843,10 @@
       sb.addEventListener('click', async () => {
         const text = shareText(current.machine, current.grinder, shot, location.origin + location.pathname + toHash(s));
         count('share');
+        const file = await cardBlob(cardModel(current, shot)).then((b) => (b && typeof File !== 'undefined' ? new File([b], 'my-espresso.png', { type: 'image/png' }) : null));
+        if (file && navigator.canShare && navigator.canShare({ files: [file], text: text })) {
+          try { await navigator.share({ files: [file], text: text }); return; } catch (err) { if (err && err.name === 'AbortError') return; }
+        }
         if (navigator.share) {
           try { await navigator.share({ text: text }); return; } catch (err) { if (err && err.name === 'AbortError') return; }
         }

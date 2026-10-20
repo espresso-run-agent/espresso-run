@@ -125,6 +125,8 @@
         steps.push('Grind at ' + (g.kind === 'clicks' ? start + ' ' + g.unit : g.unit + ' ' + start) + (g.range ? ' (this grinder\'s espresso range is about ' + g.range[0] + ' to ' + g.range[1] + ')' : '') +
           (roast !== 'medium' && isNum(g.start) && start !== g.start ? ', a little ' + (roast === 'light' ? 'finer' : 'coarser') + ' than the suggested start of ' + g.start + ' (our adjustment for ' + roast + ' roasts)' : '') + '.');
         if (press && g.espresso === 'yes') steps.push('That number is for a single-wall basket. In a double-wall (pressurised) basket, start a few steps coarser.');
+      } else if (g.startNote) {
+        steps.push(g.startNote);
       } else if (g.espresso === 'yes') {
         steps.push('Start a little coarser than where the burrs touch, and dial in from there.');
       }

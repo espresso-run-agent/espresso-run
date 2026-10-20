@@ -429,3 +429,6 @@ table.rules td[data-label="Rule quote"] { min-width: 16em; }
 #pull-viz .viz-svg, #pull-viz svg { width: 100%; max-height: 120px; }
 .share-note { align-self: center; }
 #session .viz-svg { max-height: 190px; }
+.go-pull { display: block; width: 100%; margin: 14px 0 6px; }
+details.steps { margin-top: 14px; }
+details.steps > summary { font-weight: 700; font-size: 1.05rem; cursor: pointer; padding: 6px 0; }

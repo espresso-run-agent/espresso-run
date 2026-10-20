@@ -79,7 +79,8 @@
   // The temperature line for this roast, in the machine's own terms.
   function tempLine(m, roast) {
     const t = m.temp || {};
-    if ((t.kind === 'pid' || t.kind === 'steps') && t.set) return 'Temperature: ' + t.set[roast] + '. ' + t.how;
+    // No menu walk-through when the advice is to leave the default: nothing to press (audit 10-19).
+    if ((t.kind === 'pid' || t.kind === 'steps') && t.set) return 'Temperature: ' + t.set[roast] + '.' + (/^leave/i.test(t.set[roast]) ? '' : ' ' + t.how);
     return t.how || '';
   }
 
@@ -122,7 +123,7 @@
     if (g.kind !== 'none') {
       if (g.zero) steps.push(g.zero);
       if (start !== null && start !== undefined) {
-        steps.push('Grind at ' + (g.kind === 'clicks' ? start + ' ' + g.unit : g.unit + ' ' + start) + (g.range ? ' (this grinder\'s espresso range is about ' + g.range[0] + ' to ' + g.range[1] + ')' : '') +
+        steps.push('Grind at ' + (g.kind === 'clicks' ? start + ' ' + g.unit : g.unit + ' ' + start) + (g.range ? (g.rangeIsDial ? ' (the dial runs ' + g.range[0] + ' to ' + g.range[1] + ')' : ' (this grinder\'s espresso range is about ' + g.range[0] + ' to ' + g.range[1] + ')') : '') +
           (roast !== 'medium' && isNum(g.start) && start !== g.start ? ', a little ' + (roast === 'light' ? 'finer' : 'coarser') + ' than the suggested start of ' + g.start + ' (our adjustment for ' + roast + ' roasts)' : '') + '.');
         if (press && g.espresso === 'yes') steps.push('That number is for a single-wall basket. In a double-wall (pressurised) basket, start a few steps coarser.');
       } else if (g.startNote) {
@@ -207,11 +208,37 @@
     if (mixed) {
       headline = 'Sour and bitter at once: uneven extraction.';
       grind = 'coarser';
-      const longer = Math.round(a.dose * Math.min(a.ratio + 0.3, 3) * 10) / 10;
+      const longer = Math.round(a.dose * Math.min(a.ratio + 0.3, 3));
       base = [
         'Some of the coffee is over-extracted and some under: water is finding channels. ' + 'Spread the grounds evenly, break up clumps with a needle (WDT), and tamp level.',
-        'Then grind a touch coarser and let the shot run a little longer, to about ' + longer + ' g. A finer grind usually makes channeling worse, not better.'
+        'Then let the shot run a little longer, to about ' + longer + ' g, with the grind one step coarser (the move is below). A finer grind usually makes channeling worse, not better.'
       ];
+    }
+    // Pre-ground coffee: the grind is fixed, so the levers are the yield and the dose. Built from scratch rather than
+    // patching DialIn's grind sentences, which run through every line (audit 10-19).
+    if (g.kind === 'none' && taste !== 'balanced') {
+      const r1 = (x) => Math.round(x * 10) / 10;
+      const pg = [];
+      let next = null;
+      if (mixed) pg.push('Some of the coffee is over-extracted and some under: water is finding channels. Spread the grounds evenly, tap the basket level and tamp straight' + (press ? ' (in a pressurised basket a light tamp is enough).' : '.'));
+      if (taste === 'weak') {
+        pg.push('Use 1 g more coffee next time and stop at the same weight: that makes the shot stronger.');
+        pg.push('Opened pre-ground coffee goes stale within days, and stale coffee tastes thin. A smaller, fresher bag helps more than any setting.');
+      } else if (taste === 'sour' || mixed) {
+        next = r1(a.yield + 4);
+        pg.push('Pre-ground coffee can\'t go finer, so change the recipe: let the next shot run longer, to about ' + next + ' g. If it is still sour after that, use 1 g more coffee.');
+      } else if (taste === 'bitter' || taste === 'harsh') {
+        next = r1(Math.max(a.dose, a.yield - 4));
+        if (taste === 'harsh') pg.push('Harsh and drying usually means water is channelling through part of the puck. Spread the grounds evenly, tap the basket level and tamp straight.');
+        pg.push('Pre-ground coffee can\'t go coarser, so stop the next shot sooner, at about ' + next + ' g. If it is still ' + (taste === 'harsh' ? 'harsh' : 'bitter') + ' after that, use 1 g less coffee.');
+      }
+      const tf = tempFix(m, mixed ? 'bitter' : taste);
+      if (tf) pg.push(tf.replace(/the grind and yield( changes)?/, 'the yield and dose$1').replace('ratio and grind', 'ratio and dose'));
+      return {
+        ok: true, headline: headline, grind: 'keep', move: null, pressurised: press, steps: pg,
+        ratioLabel: a.ratioLabel, timeStatus: a.timeStatus, ratioStatus: a.ratioStatus,
+        suggestedYield: next, nextSetting: null, time: a.time, dose: a.dose, yield: a.yield
+      };
     }
     if (press && grind !== 'keep') {
       steps.push('Your basket is pressurised, so the grind has only a small effect. Change the yield or dose first; if you change the grind, make it a bigger move than usual.');
@@ -227,8 +254,6 @@
         return s;
       });
       if (!replaced) base.push(move.text);
-    } else if (grind !== 'keep' && g.kind === 'none') {
-      base = base.map((s) => s.replace(/^Grind one small step (finer|coarser)\./, grind === 'finer' ? 'You can\'t grind finer with pre-ground coffee: add 1 g to the dose instead.' : 'You can\'t grind coarser with pre-ground coffee: take 1 g off the dose instead.'));
     }
     const t = tempFix(m, mixed ? 'bitter' : taste);
     const all = steps.concat(base);
@@ -236,7 +261,7 @@
     return {
       ok: true, headline: headline, grind: grind, move: move, pressurised: press, steps: all,
       ratioLabel: a.ratioLabel, timeStatus: a.timeStatus, ratioStatus: a.ratioStatus,
-      suggestedYield: mixed ? Math.round(a.dose * Math.min(a.ratio + 0.3, 3) * 10) / 10 : a.suggestedYield,
+      suggestedYield: mixed ? Math.round(a.dose * Math.min(a.ratio + 0.3, 3)) : a.suggestedYield,
       nextSetting: move && move.to !== null ? move.to : null, time: a.time, dose: a.dose, yield: a.yield
     };
   }
@@ -359,11 +384,18 @@
       '. A first-shot recipe for your own machine and grinder: ' + url;
   }
 
+  // The brand an entry is listed under in the pickers; generic entries go under Other.
+  function brandOf(name) {
+    if (/^(Other|Bean-to-cup|No grinder)/.test(name)) return 'Other';
+    const two = name.match(/^(Breville \/ Sage|La Marzocco)\b/);
+    return two ? two[1] : name.split(' ')[0];
+  }
+
   const api = {
     ROASTS: ROASTS, TASTES: TASTES, recipe: recipe, fix: fix, grindMove: grindMove, warnings: warnings,
     pressurised: pressurised, startSetting: startSetting, parseHash: parseHash, toHash: toHash, source: source,
     goodEvent: goodEvent, gaugeModel: gaugeModel, timelineModel: timelineModel, tempBadge: tempBadge, realFor: realFor,
-    timerPhase: timerPhase, sessionModel: sessionModel, shareText: shareText
+    timerPhase: timerPhase, sessionModel: sessionModel, shareText: shareText, brandOf: brandOf
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Setup = api;
@@ -382,9 +414,21 @@
     if (cls) n.className = cls;
     return n;
   }
+  // Grouped by brand, brands A to Z and the catch-all entries last, so a phone picker is a short scan (audit 10-19).
   function fill(select, list, placeholder) {
     select.appendChild(new Option(placeholder, ''));
-    list.forEach((x) => select.appendChild(new Option(x.name, x.id)));
+    const groups = new Map();
+    list.forEach((x) => {
+      const b = brandOf(x.name);
+      if (!groups.has(b)) groups.set(b, []);
+      groups.get(b).push(x);
+    });
+    [...groups.keys()].sort((a, b) => (a === 'Other' ? 1 : b === 'Other' ? -1 : a.localeCompare(b))).forEach((b) => {
+      const og = document.createElement('optgroup');
+      og.label = b;
+      groups.get(b).forEach((x) => og.appendChild(new Option(x.name, x.id)));
+      select.appendChild(og);
+    });
   }
   fill($('machine'), D.MACHINES, 'Choose your machine…');
   fill($('grinder'), D.GRINDERS, 'Choose your grinder…');
@@ -532,14 +576,18 @@
     if (!pull.running) return;
     cancelAnimationFrame(pull.raf);
     pull.running = false;
+    if (pull.lock) { pull.lock.release().catch(() => {}); pull.lock = null; }
     if (!record) return;
     const t = (performance.now() - pull.t0) / 1000;
     $('s-time').value = t.toFixed(1);
     $('pull-btn').textContent = 'Start again';
-    $('pull-phase').textContent = 'Stopped at ' + t.toFixed(1) + ' s. Check the yield on the scale, then pick how it tasted.';
+    $('pull-phase').textContent = 'Stopped at ' + t.toFixed(1) + ' s. What does the scale read? Type it in Yield out, then pick how it tasted.';
     count('pull');
-    const tg = $('shot-form').querySelector('fieldset');
-    if (tg && tg.scrollIntoView) tg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // The yield box holds the target until now; the real weight is what the fix needs (audit 10-19).
+    const y = $('s-yield');
+    if (y.scrollIntoView) y.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    y.focus({ preventScroll: true });
+    if (y.select) y.select();
   }
 
   // This visit's shots, in memory only (gone when the page closes).
@@ -624,12 +672,24 @@
       viz.appendChild(tt);
       viz.appendChild(tile('The shot', drawTimeline(timelineModel(r.machine, r.coffee, r.yield)), true));
       out.appendChild(viz);
+      // On a phone the timer sits a few screens down, past the steps; this gets you there from the picture (audit 10-19).
+      const go = el('button', 'Start the shot timer ↓', 'btn go-pull');
+      go.type = 'button';
+      go.addEventListener('click', () => {
+        if ($('pull').scrollIntoView) $('pull').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        $('pull-btn').focus({ preventScroll: true });
+      });
+      out.appendChild(go);
     }
     r.warnings.filter((w) => w.level !== 'stop').forEach((w) => out.appendChild(el('p', w.text, 'note-box')));
-    out.appendChild(el('h3', 'Step by step'));
+    // Folded when the tiles already carry the numbers; open when the grind start lives only in the steps.
+    const sd = el('details', undefined, 'steps');
+    sd.open = !!r.auto || r.grinder.kind === 'none' || r.start === null || r.start === undefined;
+    sd.appendChild(el('summary', 'Step by step (' + r.steps.length + ' steps)'));
     const ol = el('ol');
     r.steps.forEach((t) => ol.appendChild(el('li', t)));
-    out.appendChild(ol);
+    sd.appendChild(ol);
+    out.appendChild(sd);
     const det = el('details');
     det.appendChild(el('summary', 'Tips for your gear, and where these numbers come from'));
     if (r.notes && r.notes.length) {
@@ -675,6 +735,7 @@
     const viz = el('div', undefined, 'viz');
     const gm = f.move && f.move.to !== null ? gaugeModel(current.grinder, f.move.from, f.move.to, realFor(current.grinder.id, s.r).grind) : null;
     if (gm) viz.appendChild(tile('Next: grind ' + f.grind, drawGauge(gm, 'Move from ' + f.move.from + ' to ' + f.move.to), true));
+    else if (current.grinder.kind === 'none') viz.appendChild(tile('Grind', 'Pre-ground'));
     else if (f.grind !== 'keep') viz.appendChild(tile('Next: grind', f.grind === 'finer' ? '◀ Finer' : 'Coarser ▶'));
     else viz.appendChild(tile('Grind', 'Keep it'));
     if (f.suggestedYield) viz.appendChild(tile('Next: stop at', f.yield + ' g → ' + f.suggestedYield + ' g'));
@@ -740,6 +801,8 @@
     if (!pull.tm) return;
     pull.t0 = performance.now(); pull.running = true; pull.phase = '';
     $('pull-btn').textContent = 'Stop';
+    // Keep the phone screen on while the shot runs; released in stopPull. Not supported everywhere, so best effort.
+    if (navigator.wakeLock) navigator.wakeLock.request('screen').then((l) => { if (pull.running) pull.lock = l; else l.release(); }, () => {});
     tickPull();
   });
   form.addEventListener('submit', (e) => { e.preventDefault(); render(); });

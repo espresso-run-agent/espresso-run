@@ -384,6 +384,8 @@ table.rules td[data-label="Rule quote"] { min-width: 16em; }
 .v-handle { stroke: var(--roast); stroke-width: 3; fill: none; }
 .v-crema { fill: var(--caramel); }
 .v-track { stroke: var(--line); stroke-width: 6; stroke-linecap: round; }
+.v-real { fill: var(--caramel); fill-opacity: 0.22; }
+.v-real-med { stroke: var(--caramel); stroke-opacity: 0.9; stroke-width: 2; stroke-dasharray: 3 3; }
 .v-band { stroke: var(--caramel); stroke-opacity: 0.45; stroke-width: 10; stroke-linecap: round; }
 .v-tick { stroke: var(--mocha); stroke-width: 1.5; }
 .v-dot { fill: var(--caramel-dark); stroke: var(--cream); stroke-width: 3; }

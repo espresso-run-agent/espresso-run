@@ -11,6 +11,7 @@
   const D = root.SetupData || (typeof require === 'function' ? require('./setup-data.js') : null);
   const DI = root.DialIn || (typeof require === 'function' ? require('./dial-in.js') : null);
   const CO = root.SetupCoffees || (typeof require === 'function' ? require('./setup-coffees.js') : []);
+  const RE = root.SetupReal || (typeof require === 'function' ? require('./setup-real.js') : null);
 
   /* Starting ratio by roast (Hoffmann, Hedrick, Perger: light runs longer; see notes/setup-research.md). Checked against
      1,857 public espresso shots on Visualizer.coffee (tools/visualizer/stats.py, 2026-10-19), median per person: light
@@ -282,19 +283,28 @@
 
   // Where a setting sits on the grinder's espresso range, finest on the left: {min, max, at, to, ticks[], finer}
   // with at/to as 0..1 positions (to only when a move is shown). null when the grinder publishes no range.
-  function gaugeModel(g, value, to) {
+  // Where real owners of this grinder sit, and the ratio home baristas pull for this roast (setup-real.js).
+  function realFor(gid, roast) {
+    const g = RE && RE.grinders && RE.grinders[gid];
+    const r = RE && RE.roasts && RE.roasts[roast];
+    return { grind: g && g.iqr ? g : null, ratio: r && r.iqr ? r : null };
+  }
+
+  function gaugeModel(g, value, to, real) {
     if (!g || !g.range || !isNum(value)) return null;
     let [lo, hi] = g.range;
     const span = hi - lo || 1;
     const pad = span * 0.08;
-    const a = Math.min(lo, value, isNum(to) ? to : value) - pad;
-    const b = Math.max(hi, value, isNum(to) ? to : value) + pad;
+    const q = real && real.iqr ? real.iqr : null;
+    const a = Math.min(lo, value, isNum(to) ? to : value, q ? q[0] : lo) - pad;
+    const b = Math.max(hi, value, isNum(to) ? to : value, q ? q[1] : hi) + pad;
     const pos = (v) => r2((v - a) / (b - a));
     const step = [0.1, 0.25, 0.5, 1, 2, 5, 10, 20].find((x) => span / x <= 6) || 20;
     const ticks = [];
     for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) ticks.push({ v: r2(v), at: pos(v) });
     return { min: lo, max: hi, lo: pos(lo), hi: pos(hi), value: value, at: pos(value), to: isNum(to) ? to : null,
-      toAt: isNum(to) ? pos(to) : null, ticks: ticks, unit: g.unit };
+      toAt: isNum(to) ? pos(to) : null, ticks: ticks, unit: g.unit,
+      real: q ? { qa: pos(q[0]), qb: pos(q[1]), med: pos(real.median), people: real.people } : null };
   }
 
   // The shot on a clock: first drips window (the maker's), the target window (roaster's, else 25-30 s; lever
@@ -324,7 +334,7 @@
   const api = {
     ROASTS: ROASTS, TASTES: TASTES, recipe: recipe, fix: fix, grindMove: grindMove, warnings: warnings,
     pressurised: pressurised, startSetting: startSetting, parseHash: parseHash, toHash: toHash, source: source,
-    goodEvent: goodEvent, gaugeModel: gaugeModel, timelineModel: timelineModel, tempBadge: tempBadge
+    goodEvent: goodEvent, gaugeModel: gaugeModel, timelineModel: timelineModel, tempBadge: tempBadge, realFor: realFor
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Setup = api;
@@ -415,6 +425,10 @@
   function drawGauge(gm, label) {
     const W = 300, x = (t) => 12 + t * (W - 24);
     const s = svgBox(W, 92, label);
+    if (gm.real) {
+      sv('rect', { x: x(gm.real.qa), y: 34, width: Math.max(4, x(gm.real.qb) - x(gm.real.qa)), height: 24, rx: 4, class: 'v-real' }, s);
+      sv('line', { x1: x(gm.real.med), y1: 34, x2: x(gm.real.med), y2: 58, class: 'v-real-med' }, s);
+    }
     sv('line', { x1: x(0), y1: 46, x2: x(1), y2: 46, class: 'v-track' }, s);
     sv('line', { x1: x(gm.lo), y1: 46, x2: x(gm.hi), y2: 46, class: 'v-band' }, s);
     gm.ticks.forEach((t) => {
@@ -490,12 +504,16 @@
     r.warnings.filter((w) => w.level === 'stop').forEach((w) => out.appendChild(el('p', w.text, 'warn-box')));
     if (!r.auto) {
       const viz = el('div', undefined, 'viz');
-      viz.appendChild(tile('Dose → yield', drawDoseYield(r)));
-      const gm = gaugeModel(r.grinder, r.start);
+      const real = realFor(r.grinder.id, r.roast);
+      const dt = tile('Dose → yield', drawDoseYield(r));
+      if (real.ratio) dt.appendChild(el('span', 'Home baristas pull ' + r.roast + ' roasts at 1:' + real.ratio.iqr[0].toFixed(1) + ' to 1:' + real.ratio.iqr[1].toFixed(1) + ' (middle half of ' + real.ratio.people + ' people, Visualizer.coffee).', 'viz-sub'));
+      viz.appendChild(dt);
+      const gm = gaugeModel(r.grinder, r.start, undefined, real.grind);
       if (gm) {
         const gt = tile('Grind: ' + r.grinder.unit, String(r.start));
         gt.classList.add('grind');
         gt.appendChild(drawGauge(gm, 'Start at ' + r.start + ' on a range of ' + gm.min + ' to ' + gm.max));
+        if (gm.real) gt.appendChild(el('span', 'Shaded: where ' + gm.real.people + ' owners of this grinder actually grind (middle half ' + real.grind.iqr[0] + ' to ' + real.grind.iqr[1] + ', line at the median ' + real.grind.median + '), from their public shots on Visualizer.coffee.', 'viz-sub'));
         viz.appendChild(gt);
       } else if (r.grinder.kind !== 'none') viz.appendChild(tile('Grind', r.start !== null && r.start !== undefined ? String(r.start) : 'From zero ↓'));
       else viz.appendChild(tile('Grind', 'Pre-ground'));
@@ -549,7 +567,7 @@
     if (t && t.value === 'balanced') { const ev = goodEvent(s.g, s.r, $('s-setting').value); if (ev) count(ev); }
     out.appendChild(el('h3', f.headline));
     const viz = el('div', undefined, 'viz');
-    const gm = f.move && f.move.to !== null ? gaugeModel(current.grinder, f.move.from, f.move.to) : null;
+    const gm = f.move && f.move.to !== null ? gaugeModel(current.grinder, f.move.from, f.move.to, realFor(current.grinder.id, s.r).grind) : null;
     if (gm) viz.appendChild(tile('Next: grind ' + f.grind, drawGauge(gm, 'Move from ' + f.move.from + ' to ' + f.move.to), true));
     else if (f.grind !== 'keep') viz.appendChild(tile('Next: grind', f.grind === 'finer' ? '◀ Finer' : 'Coarser ▶'));
     else viz.appendChild(tile('Grind', 'Keep it'));

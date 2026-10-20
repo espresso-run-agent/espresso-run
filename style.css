@@ -432,3 +432,15 @@ table.rules td[data-label="Rule quote"] { min-width: 16em; }
 .go-pull { display: block; width: 100%; margin: 14px 0 6px; }
 details.steps { margin-top: 14px; }
 details.steps > summary { font-weight: 700; font-size: 1.05rem; cursor: pointer; padding: 6px 0; }
+/* numbers.html: the public funnel */
+.v-path.v-good { stroke: #5d8f4e; stroke-opacity: 1; }
+.fn-row { display: grid; grid-template-columns: minmax(9em, 14em) 1fr 4.5em; gap: 4px 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.fn-label { font-weight: 600; }
+.fn-bar { height: 12px; background: var(--foam); border-radius: 999px; overflow: hidden; }
+.fn-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--caramel), var(--caramel-dark)); }
+.fn-n { font-family: Georgia, serif; font-size: 1.15rem; text-align: right; }
+.fn-share { grid-column: 1 / -1; font-size: 0.82rem; color: var(--mocha); }
+.fn-share:empty { display: none; }
+@media (max-width: 560px) { .fn-row { grid-template-columns: 1fr 3.5em; } .fn-bar { grid-column: 1 / -1; grid-row: 2; } }
+.want-row { display: flex; gap: 8px; margin-top: 8px; }
+.want-row input { flex: 1; min-width: 0; }

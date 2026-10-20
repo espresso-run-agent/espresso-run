@@ -18,6 +18,8 @@
      pull, share   the setup page shot timer was stopped / a Good recipe was shared (no content sent)
      pick-m-<id>, pick-g-<id>, pick-c-<id>   the setup page's machine / grinder / coffee list was set to that model (a model id from
                    setup-data.js, never anything typed)
+     want-m-<model>, want-g-<model>   on the setup page, a missing machine / grinder the visitor asked for: what they
+                   typed, lower-cased and cut to letters, digits and dashes (Setup.wantEvent), at most 40 characters
      good-<grinder>-<roast>-<setting>   on the setup page, a shot marked "Good": the grinder model id, the roast
                    and the grinder setting, only when the setting is a plain number (Setup.goodEvent)
    Each hit also carries the screen width, so GoatCounter can split any step by phone / tablet / desktop.

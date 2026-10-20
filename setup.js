@@ -384,6 +384,14 @@
       '. A first-shot recipe for your own machine and grinder: ' + url;
   }
 
+  // "Missing your model?": what the visitor types becomes a counter event of letters, digits and dashes only
+  // (want-m-gaggia-classic, at most 40 characters), so I can add the most-asked models. Null for anything too short.
+  const GENERIC = ['other-hx', 'other-pid', 'other-pressurised', 'bean-to-cup', 'not-espresso'];
+  function wantEvent(kind, text) {
+    const slug = String(text || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+    return slug.length >= 3 ? 'want-' + (kind === 'g' ? 'g' : 'm') + '-' + slug : null;
+  }
+
   // The brand an entry is listed under in the pickers; generic entries go under Other.
   function brandOf(name) {
     if (/^(Other|Bean-to-cup|No grinder)/.test(name)) return 'Other';
@@ -395,7 +403,7 @@
     ROASTS: ROASTS, TASTES: TASTES, recipe: recipe, fix: fix, grindMove: grindMove, warnings: warnings,
     pressurised: pressurised, startSetting: startSetting, parseHash: parseHash, toHash: toHash, source: source,
     goodEvent: goodEvent, gaugeModel: gaugeModel, timelineModel: timelineModel, tempBadge: tempBadge, realFor: realFor,
-    timerPhase: timerPhase, sessionModel: sessionModel, shareText: shareText, brandOf: brandOf
+    timerPhase: timerPhase, sessionModel: sessionModel, shareText: shareText, brandOf: brandOf, wantEvent: wantEvent, GENERIC: GENERIC
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Setup = api;
@@ -779,11 +787,29 @@
     if (id === 'grinder') delete $('s-setting').dataset.touched;
     const v = $(id).value;
     if (v) count('pick-' + id[0] + '-' + v);
+    showWant();
     render();
     // Bring the recipe into view the moment it exists (the first screen is mostly the pickers on a phone).
     const out = $('recipe');
     if (!out.hidden && out.getBoundingClientRect().top > root.innerHeight * 0.6 && out.scrollIntoView) out.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
+  // Shown while a generic "Other" entry is picked: the visitor names the model and I add it from its manual.
+  function showWant() {
+    const m = GENERIC.indexOf($('machine').value) >= 0, g = GENERIC.indexOf($('grinder').value) >= 0;
+    const box = $('want');
+    box.hidden = !m && !g;
+    if (box.hidden) return;
+    box.dataset.kind = m ? 'm' : 'g';
+    $('want-label').textContent = 'Which ' + (m ? 'machine' : 'grinder') + ' is it? Type the model and I\'ll add it from its maker\'s manual, usually within a day.';
+  }
+  $('want').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ev = wantEvent($('want').dataset.kind, $('want-text').value);
+    if (!ev) { $('want-done').textContent = 'Type the brand and model, for example "Gaggia Classic".'; return; }
+    count(ev);
+    $('want-text').value = '';
+    $('want-done').textContent = 'Thanks. I check requests every hour, and the diary says when a model is in. Bookmark this page: the link keeps your setup. Meanwhile the recipe below is for this type of ' + ($('want').dataset.kind === 'm' ? 'machine' : 'grinder') + '.';
+  });
   form.querySelectorAll('input[name="roast"]').forEach((r) => r.addEventListener('change', render));
   $('coffee').addEventListener('change', () => {
     const c = coffee($('coffee').value);

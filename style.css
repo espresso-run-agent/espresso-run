@@ -448,3 +448,14 @@ details.steps > summary { font-weight: 700; font-size: 1.05rem; cursor: pointer;
 /* Recipe pages (espresso-*.html, grinder-*.html, recipes.html) */
 ul.cols { columns: 2 14em; column-gap: 2em; padding-left: 1.2em; }
 ul.cols li { break-inside: avoid; margin-bottom: 4px; }
+
+/* Setup page: one-tap common setups above the pickers */
+.quick { margin: 0 0 14px; }
+.quick-h { font-weight: 600; margin: 0 0 8px; }
+.quick-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.quick-btn {
+  font: inherit; font-weight: 600; font-size: 0.92rem; color: inherit; cursor: pointer;
+  border: 1px solid var(--caramel); background: var(--crema); border-radius: 999px; padding: 9px 14px;
+}
+.quick-btn:active, .quick-btn:focus-visible { background: var(--foam); }
+.quick .fine { margin: 12px 0 0; }

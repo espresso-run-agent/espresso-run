@@ -909,6 +909,15 @@
     tickPull();
   });
   form.addEventListener('submit', (e) => { e.preventDefault(); render(); });
+  // One-tap common setups (added 10-20 noon: 4 of 18 ad visitors stayed 10 s when the first screen was only pickers).
+  form.querySelectorAll('.quick-btn').forEach((b) => b.addEventListener('click', () => {
+    setState({ m: b.dataset.m, g: b.dataset.g, r: state().r, c: '' });
+    $('grinder').dataset.touched = '1'; delete $('grinder').dataset.auto; delete $('s-setting').dataset.touched;
+    count('quick'); count('pick-m-' + b.dataset.m); count('pick-g-' + b.dataset.g);
+    showWant();
+    render();
+    $('recipe').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
 
   const initial = parseHash(location.hash);
   if (initial.m || initial.g) {

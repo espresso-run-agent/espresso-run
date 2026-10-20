@@ -16,6 +16,7 @@
      out-<host>    a link to another site (not Stripe) was clicked
      recipe, fix   the setup page showed a first-shot recipe / a next-shot fix
      pull, share   the setup page shot timer was stopped / a Good recipe was shared (no content sent)
+     quick         the setup page's one-tap common-setup buttons were used (it also sends pick-m / pick-g for the pair)
      card          the setup page's "Save this recipe as an image" button was used (the image is made on the device; nothing sent)
      pick-m-<id>, pick-g-<id>, pick-c-<id>   the setup page's machine / grinder / coffee list was set to that model (a model id from
                    setup-data.js, never anything typed)
